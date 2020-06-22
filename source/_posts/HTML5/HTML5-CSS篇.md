@@ -1294,7 +1294,140 @@ tags:
       </body>
       ```
 
-      
 
 
+
+#### 六、背景图片缩放`background-size`
+
+background-size 属性规定背景图像的尺寸
+
+```
+background-size: 背景图片宽度 背景图片高度;
+```
+
+单位： 长度|百分比|cover|contain;
+
+cover把背景图像扩展至足够大，以使背景图像完全覆盖背景区域。
+
+contain把图像图像扩展至最大尺寸，以使其宽度和高度完全适应内容区域
+
+```css
+<style>
+div {
+    width: 500px;
+    height: 500px;
+    border: 2px solid red;
+    /* 背景图片随意 */
+    background: url(images/dog.jpg) no-repeat;
+    /* background-size: 图片的宽度 图片的高度; */
+    /* background-size: 500px 200px; */
+    /* 1.只写一个参数 肯定是宽度 而高度省略了  会等比例缩放 */
+    /* background-size: 500px; */
+    /* 2. 里面的单位可以跟%  相对于父盒子来说的 */
+    /* background-size: 50%; */
+    /* 3. cover 等比例拉伸 要完全覆盖div盒子  可能有部分背景图片显示不全 */
+    /* background-size: cover; */
+    /* 4. contain 高度和宽度等比例拉伸 当宽度 或者高度 铺满div盒子就不再进行拉伸了 可能有部分空白区域 */
+    background-size: contain;
+}
+</style>
+<body>
+    <div></div>
+    <p></p>
+</body>
+```
+
+#### 七、盒子模型`box-sizing`
+
+传统模式宽度计算：盒子的宽度 = CSS中设置的width + border + padding 
+
+CSS3盒子模型：     盒子的宽度=  CSS中设置的宽度width 里面包含了 border 和 padding 
+
+也就是说，我们的CSS3中的盒子模型， padding 和 border 不会撑大盒子了
+
+```css
+/*CSS3盒子模型*/
+box-sizing: border-box;
+/*传统盒子模型*/
+box-sizing: content-box;
+```
+
+移动端可以全部CSS3 盒子模型
+
+PC端如果完全需要兼容，我们就用传统模式，如果不考虑兼容性，我们就选择 CSS3 盒子模型
+
+#### 八、盒子阴影
+
+语法：
+
+```css
+box-shadow:水平阴影 垂直阴影 模糊距离（虚实）  阴影尺寸（影子大小）  阴影颜色  内/外阴影；
+```
+
+属性值:
+
+| 属性值   | 描述                                 |
+| -------- | ------------------------------------ |
+| h-shadow | 必须，水平阴影的位置。也许负值。     |
+| v-shadow | 必须，垂直阴影的位置。也许负值。     |
+| blur     | 可选，模糊距离。                     |
+| spread   | 可选，阴影的尺寸。                   |
+| color    | 可选，阴影的颜色。                   |
+| inset    | 可选，将外部阴影(outset)改为内部阴影 |
+
+注意:
+
+* 前两个属性是必须写的。其余的可以省略。
+* 外阴影 (outset) 是默认的 但是不能写           想要内阴影可以写  inset 
+
+代码演示：
+
+```html
+<style>
+    div {
+        width: 200px;
+        height: 200px;
+        background-color: pink;
+        margin: 50px auto;
+        /*box-shadow:水平阴影 垂直阴影 模糊距离（虚实）  阴影尺寸（影子大小）  阴影颜色  内/外阴影；*/
+        box-shadow: 0 15px 30px rgba(0,0,0,.3);
+    }
+</style>
+<body>
+    <div></div>
+</body>
+```
+
+#### 九、背景线性渐变
+
+语法：
+
+```css
+background: linear-gradient(起始方向, 颜色1, 颜色2, ...);
+background: -webkit-linear-gradient(left, red , blue);
+background: -webkit-linear-gradient(left top, red , blue);
+```
+
+注意：
+
+* 背景渐变必须添加浏览器私有前缀 
+* 起始方向可以是： 方位名词 或者 度数 ， 如果省略默认就是 top 
+
+代码演示:
+
+```html
+<style>
+    div {
+        width: 600px;
+        height: 200px;
+        /* 背景渐变必须添加浏览器私有前缀 */
+        /* background: -webkit-linear-gradient(left, red, blue); */
+        /* background: -webkit-linear-gradient(red, blue); */
+        background: -webkit-linear-gradient(top left, red, blue);
+    }
+</style>
+<body>
+    <div></div>
+</body>
+```
 

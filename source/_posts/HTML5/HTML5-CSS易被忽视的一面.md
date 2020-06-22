@@ -195,6 +195,53 @@ padding不影响盒子大小情况
 
 #### 九、插入图片和背景图片区别
 
+#####9.1缩放层面比较：
+
+插入图片的缩放
+
+> 由于`img`标签是行内块元素，设置的大小只要控制好`width`和`height`比例就好了
+
+背景图片缩放`background-size`
+
+background-size 属性规定背景图像的尺寸
+
+```
+background-size: 背景图片宽度 背景图片高度;
+```
+
+单位： 长度|百分比|cover|contain;
+
+cover把背景图像扩展至足够大，以使背景图像完全覆盖背景区域。
+
+contain把图像图像扩展至最大尺寸，以使其宽度和高度完全适应内容区域
+
+```css
+<style>
+div {
+    width: 500px;
+    height: 500px;
+    border: 2px solid red;
+    /* 背景图片随意 */
+    background: url(images/dog.jpg) no-repeat;
+    /* background-size: 图片的宽度 图片的高度; */
+    /* background-size: 500px 200px; */
+    /* 1.只写一个参数 肯定是宽度 而高度省略了  会等比例缩放 */
+    /* background-size: 500px; */
+    /* 2. 里面的单位可以跟%  相对于父盒子来说的 */
+    /* background-size: 50%; */
+    /* 3. cover 等比例拉伸 要完全覆盖div盒子  可能有部分背景图片显示不全 */
+    /* background-size: cover; */
+    /* 4. contain 高度和宽度等比例拉伸 当宽度 或者高度 铺满div盒子就不再进行拉伸了 可能有部分空白区域 */
+    background-size: contain;
+}
+</style>
+<body>
+    <div></div>
+    <p></p>
+</body>
+```
+##### 9.2移动层面比较：
+
 * 插入图片 我们用的最多 比如产品展示类  移动位置只能靠盒模型 padding margin
 * 背景图片我们一般用于小图标背景 或者 超大背景图片  背景图片 只能通过  background-position
 
@@ -470,6 +517,8 @@ padding不影响盒子大小情况
 
 #### 十二、定位
 
+> 在定位的过程中，如何你设置上定位之后，原本宽度继承父亲宽度的盒子宽度消失了，变为内容有多宽盒子就有多宽的情况下，请不要慌，这是盒子改变为了`行内块`元素的原因，这时在设置上你要的宽度就好了。
+
 ##### 1.静态定位（static）
 
 * 元素的默认定位方式，无定位的意思。元素取消定位时用。
@@ -493,6 +542,8 @@ padding不影响盒子大小情况
   ![父级有定位](/medias/imges/HTML5/ignore/06_绝对定位_父级有定位.png)
 
 ##### 4.固定定位（fixed）
+
+> 固定的盒子一定要给宽度
 
 **固定定位**是**绝对定位**的一种特殊形式： （认死理型）   如果说绝对定位是一个矩形 那么 固定定位就类似于正方形
 
