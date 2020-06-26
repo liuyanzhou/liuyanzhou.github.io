@@ -193,8 +193,9 @@ console.log(year) // 2020 ，其他月日也是一样获取的
   console.log(countDown('2020-6-22'));// 00天01时34分17秒
   ```
 
-
 ## 四、Array 数组对象
+
+> [点击查看MDN](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Array)
 
 ### 创建数组的两种方式
 
@@ -214,6 +215,33 @@ console.log(year) // 2020 ，其他月日也是一样获取的
 
   * 如果只传入一个参数，则参数规律数组的长度
   * 如果传入了多个参数，则参数成为数组的元素
+
+### 使用方法创建数组
+
+| 方法名                   | 描述                                                         | 返回值 |
+| ------------------------ | ------------------------------------------------------------ | ------ |
+| Array.from(想转化的对象) | 从一个类似数组或可迭代对象创建一个新的，浅拷贝的数组实例     | 新数组 |
+| Array.of()               | 创建一个具有可变数量参数的新数组实例，而不考虑参数的数量或类型。 | 新数组 |
+
+**代码演示**
+
+```js
+// Array.from()
+let datas = {
+    0: "a",
+    1: "b",
+    2: "c",
+    length: 3
+};  
+datas = Array.from(datas,function(item,index){
+    return item.toUpperCase();
+},document);
+console.log(datas); // ["A", "B", "C"]
+
+// Array.of()
+ let arr = Array.of(1, 2, 3, 4, 5, 5, 6, '123');
+console.log(arr); // [1, 2, 3, 4, 5, 5, 6, "123"]
+```
 
 ### 检测是否为数组
 
@@ -237,19 +265,20 @@ console.log(Array.isArray(arr)); // true
 console.log(Array.isArray(obj)); // false
 ```
 
-### 添加/删除/截取/连接数组元素的方法
+### 添加/删除/截取/连接/查找数组元素的方法
 
 * 数组中有进行添加、删除元素的方法，常用如下表
 
-| 方法名              | 描述                                                         | 返回值                 |
-| ------------------- | ------------------------------------------------------------ | ---------------------- |
-| push(参数1,.....)   | 末尾添加一个或多个元素，**注意修改原数组**                   | 并返回新的长度         |
-| pop()               | 删除数组最后一个元素,把数组长度减1 **无参数，修改原数组**    | 返回他删除的元素的值   |
-| unshift(参数1,....) | 向数组的开头添加一个或更多元素，**注意修改原 数组**          | 并返回新的长度         |
-| shift()             | 删除数组的第一个元素，数组长度减一，**无参数，修改原数组**   | 并返回第一个元素的值   |
-| concat()            | 连接两个或多个数组 **不影响原数组**                          | 返回一个新数组         |
-| slice()             | 数组截取 slice(begin,end)，**不影响原数组**                  | 返回被截取项目的新数组 |
-| splice()            | 数组删除 splice(第几个开始，要删除的个数)**注意：这个会影响原数组** | 返回被删除项目的新数组 |
+| 方法名                           | 描述                                                         | 返回值                  |
+| -------------------------------- | ------------------------------------------------------------ | ----------------------- |
+| push(参数1,.....)                | 末尾添加一个或多个元素，**注意修改原数组**                   | 并返回新的长度          |
+| pop()                            | 删除数组最后一个元素,把数组长度减1 **无参数，修改原数组**    | 返回他删除的元素的值    |
+| unshift(参数1,....)              | 向数组的开头添加一个或更多元素，**注意修改原 数组**          | 并返回新的长度          |
+| shift()                          | 删除数组的第一个元素，数组长度减一，**无参数，修改原数组**   | 并返回第一个元素的值    |
+| concat()                         | 连接两个或多个数组 **不影响原数组**                          | 返回一个新数组          |
+| slice()                          | 数组截取 slice(begin,end)，**不影响原数组**                  | 返回被截取项目的新数组  |
+| splice()                         | 数组删除 splice(第几个开始，要删除的个数)**注意：这个会影响原数组** | 返回被删除项目的新数组  |
+| include(要查找的元素,[从哪开始]) | 用来判断一个数组是否包含一个指定的值，默认从索引0的位置开始查找**不影响原数组** | 存在元素:true,否则false |
 
 > 注意:
 >
@@ -265,6 +294,11 @@ console.log(arr.concat(arr2, arr3)) // [1, 2, 3, 4, 5, 6, 7, 8, 9]
 console.log(arr.slice(1, 2)); // [2]
 console.log(arr.splice(1, 2)) // [2, 3]
 console.log(arr) // [1]
+
+// include
+let arr = ["a","b","c","d"];
+console.log(arr.includes("a")); // true
+console.log(arr.includes("a",-3)); // 从索引4-3 = 1 的位置开始查找 返回flase
 ```
 
 ### 数组排序
@@ -341,16 +375,120 @@ console.log(arr1.join('-')); // green-blue-pink
 console.log(arr1.join('&')); // green&blue&pink
 ```
 
+### 数组的遍历
+
+> 下面的方法都是**不改变原数组**
+
+| 方法名                                       | 描述                                                         | 返回值                    |
+| -------------------------------------------- | ------------------------------------------------------------ | ------------------------- |
+| arr.forEach(callback(item,index))            | 将arr数组中的每一项都执行一次`callback`函数,若要中途跳出循环则需要抛出结束循环的语句， | undefined                 |
+| arr.every(callback(item,index))              | 测试一个数组内的`所有元素`是否都能通过某个指定函数的测试，   | 布尔值                    |
+| arr.some(callback(item,index))               | 测试数组中是不是`至少有1个元素`通过了被提供的函数测试,如果找到第一个符合条件的元素便终止遍历 | 布尔值                    |
+| arr.find(callback(item,index))**(ES6)**      | 遍历寻找数组中第一个符合`callback`函数条件的元素，找到则终止遍历 | 符合条件元素或`undefined` |
+| arr.findIndex(callback(item,index))**(ES6)** | 遍历寻找数组中第一个符合`callback`函数条件的元素并获取到其的`索引`，并终止遍历 | 找到返回索引值,否则`-1`   |
+| arr.map(callback(item,index))**(ES6)**       | 遍历数组，将每一个元素执行一次`callback`之后返回一个新数组   | 新数组                    |
+| arr.filter(callback(item,index))**(ES6)**    | 遍历数组，将每一个元素执行`callback`之后，若元素满足函数返回条件，则保留 | 新数组                    |
+
+**代码演示**
+
+```js
+// forEach
+const arraySparse = [1,3,,7];
+arraySparse.forEach(function(item){
+    console.log(element); // 1 3 7
+});
+
+// every
+[12, 5, 8, 130, 44].every(x => x >= 10); // false
+[12, 54, 18, 130, 44].every(x => x >= 10); // true
+
+// some 
+[2, 5, 8, 1, 4].some(x => x > 10);  // false 实际执行5次callback
+[12, 5, 8, 1, 4].some(x => x > 10); // true  实际执行1次callback
+
+// find 
+let arr = [10, 1, 3]
+const flag = arr.find((item, index) => {
+    return item > 9
+})
+console.log(flag) // 10
+
+// findIndex
+let arr = [10, 1, 3]
+const flag = arr.findIndex((item, index) => {
+    return item == 10
+})
+console.log(flag) // 0 
+
+// map 
+const array1 = [1, 4, 9, 16];
+const map1 = array1.map(x => x * 2);
+console.log(map1); // [2, 8, 18, 32]
+
+// filter
+const words = ['spray', 'limit', 'elite', 'exuberant', 'destruction', 'present'];
+const result = words.filter(word => word.length > 6);
+console.log(result); // ["exuberant", "destruction", "present"]
+```
+
+### 数据数组扁平化
+
+| 方法名                             | 描述                                                         | 返回值 |
+| ---------------------------------- | ------------------------------------------------------------ | ------ |
+| arr.flat([depth])**(ES6)**         | 方法会按照一个可指定的**深度**递归遍历数组，并将所有元素与遍历到的子数组中的元素合并为一个新数组返回。 深度默认为1，无限次可指定为`Infinity` | 新数组 |
+| arr.flatMap((item,index))**(ES6)** | 方法首先使用映射函数映射每个元素，然后将结果压缩成一个新数组。它与 `map` 连着深度值为1的 `flat` 几乎相同，但 `flatMap` 通常在合并成一种方法的效率稍微高一些。 | 新数组 |
+
+> 简单来讲：flat 是将多维度的数组数据结构进行降维操作，传入`Infinity`之后，返回的新数组中会是一维原数组；flatMap 是将数组的所有数据进去`callback`操作之后，强行把结果压缩为一个数组存储。
+
+**代码演示**
+
+```js
+// flat  注意：arr的数据结构一定要按下面的形式定义
+let arr = [
+    [1, 2],
+    [3, 4],
+    [
+        [6, 7],
+        [
+            [8],
+            [9, 10]
+        ]
+    ]
+];
+console.log(arr.flat(Infinity)); // [1, 2, 3, 4, 6, 7, 8, 9, 10]
+
+// flatMap
+let arr1 = ["it's Sunny in", "", "California"];
+arr1.flatMap(x => x.split(" "));
+// ["it's","Sunny","in", "", "California"]
+
+let arr = [
+    [1, 2],
+    [3, 4],
+    [6, 8]
+];
+let arr2 = arr.flatMap(item => {
+    item = item.filter(item => item >= 2);
+    return item;
+});
+console.log(arr2);
+```
+
+
+
 ## 五、String 字符串对象
 
 > 注意：字符串具有不可变性，也就是说字符串在重新赋值的时候，只是在内存空间中在开辟了一个存储空间，改变变量的指针指向新值，而旧值依然存在于内存中，并未销毁。所以不要过多次的进行字符串拼接，由于字符串的不可变性，下面对字符串的操作都是**不会影响原字符串**
+>
+> [点击查看MDN](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/String)
 
 ### 根据字符返回位置
 
-| 方法名                              | 描述                                                         |
-| ----------------------------------- | ------------------------------------------------------------ |
-| indexOf('要查找的字符'，开始的位置) | 返回指定内容在元字符串中的位置，如果找不到就返回`-1`，开始的位置是`index`索引号 |
-| lastIndexOf()                       | 从后往前找，只找到第一个匹配的                               |
+| 方法名                                | 描述                                                         | 返回值     |
+| ------------------------------------- | ------------------------------------------------------------ | ---------- |
+| indexOf('要查找的字符'，开始的位置)   | 返回指定内容在元字符串中的位置，如果找不到就返回`-1`，开始的位置是`index`索引号 | 索引或`-1` |
+| lastIndexOf()                         | 从后往前找，只找到第一个匹配的                               | 索引或`-1` |
+| includes("要查找的字符串",[从哪开始]) | 判断该字符串是否存在我们需要查到的字符串                     | 布尔值     |
 
 **代码演示**
 
@@ -388,14 +526,17 @@ console.log(str[0]); // a
 
 ### 字符串操作方法
 
-| 方法名                     | 描述                                                         |
-| -------------------------- | ------------------------------------------------------------ |
-| concat(str1,str2,str3....) | concat() 方法用于连接两个或多个字符串，凭借字符串，等效于+,而 + 更常用 |
-| substr(start,length)       | 从 start 位置开始(索引号)，length 去的个数 **重点掌握**      |
-| slice(start,end)           | 从 start 位置开始，截取到 end 位置，end去不到（两个都是索引号） |
-| substring(start,end)       | 从 start 位置开始,截取到 end 位置，end取不到， 基本 slice相同，但是不接受负值 |
-| replace()                  | 字符串中用一些字符替换另一些字符                             |
-| split()                    | 切分字符串，它可以将字符串切分为数组。在切分完毕之后，返回的是一个新数组。 |
+> 注意：下面的方法都是不影响原字符串，这也体现了字符串的不可变性
+
+| 方法名                                       | 描述                                                         | 返回值                 |
+| -------------------------------------------- | ------------------------------------------------------------ | ---------------------- |
+| concat(str1,str2,str3....)                   | concat() 方法用于连接两个或多个字符串，凭借字符串，等效于+,而 + 更常用 | 新字符                 |
+| substr(start,length)                         | 从 start 位置开始(索引号)，length 去的个数 **不影响原字符，重点掌握** | 截取的字符             |
+| slice(start,end)                             | 从 start 位置开始，截取到 end 位置，end去不到（两个都是索引号）**不影响原字符** | 截取的字符             |
+| substring(start,end)                         | 从 start 位置开始,截取到 end 位置，end取不到， 基本 slice相同，但是不接受负值 | 截取的字符             |
+| replace(regexp\|substr, newSubStr\|function) | 字符串中用一些字符替换另一些字符                             | 返回被替换的整个字符串 |
+| split("分割字符")                            | 切分字符串，它可以将字符串切分为数组。在切分完毕之后，返回的是一个新数组。 | 新数组                 |
+| repeat(重复的次数)                           | 将字符串重复复制并连接在一起                                 | 新字符                 |
 
 **代码演示**
 
@@ -413,6 +554,11 @@ var str1 = '改革春风吹满地';
 console.log(str1.slice(2, 3)) // 春
 console.log(str1.substr(2, 2)); // 第一个2 是索引号的2 从第几个开始  第二个2 是取几个字符  结果：春风
 console.log(str1) // 改革春风吹满地
+
+// repeat
+let str = "123";
+console.log(str.repeat(10)); // 123123123123123123123123123123
+console.log(str) // 123
 ```
 
 **replace 语法格式**
@@ -451,5 +597,101 @@ var str3 = 'red&pink&blue';
 console.log(str3.split('&')); // ["red", "pink", "blue"]
 ```
 
+### 检查字符串是否以某个字符开头/结尾
 
+| 方法名                                          | 描述                                                         | 返回值 |
+| ----------------------------------------------- | ------------------------------------------------------------ | ------ |
+| str.startsWith(要判断的字符串,[从哪个位置])     | 判断该字符串是否以传入的字符为开头的,默认为0，即字符串开头位置 | 布尔值 |
+| str.endsWith(要判断的字符串,[要查找的字符长度]) | 判断该字符串是否以传入的字符为结尾的，默认为字符串长度       | 布尔值 |
+
+**代码演示**
+
+```js
+// startWidth
+const str1 = 'Saturday night plans';
+console.log(str1.startsWith('Sat')); // true
+console.log(str1.startsWith('Sat', 3)); // false
+
+// endWidth
+const str1 = 'Cats are the best!';
+console.log(str1.endsWith('best', 17)); // true
+console.log(str1.endsWith('best', 2)); // false
+```
+
+## 六、Set对象 
+
+> set对象允许你存储任何类型的**唯一值**，无论是原始值或者是对象引用。 可以将它想做是一种数据结构，一般我们是将它作为数组去重作用，出现于**（ES6）**
+>
+> [详细点击查看MDN](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Set)
+
+**自身携带的属性**
+
+| 属性名 | 描述                                            |
+| ------ | ----------------------------------------------- |
+| size   | set对象存储数据结构的长度，和数组的`length`类似 |
+
+**自身携带的方法**
+
+| 方法名               | 描述                             | 返回值      |
+| -------------------- | -------------------------------- | ----------- |
+| setObj.add(value)    | 在set对象后尾添加多一个数值      | 新的set对象 |
+| setObj.has(value)    | 判断set对象中是否存在值为`value` | 布尔值      |
+| setObj.delete(value) | 删除set对象中的值为`value`       | 布尔值      |
+| setObj.clean()       | 移除set对象中所有的元素          | 空的set对象 |
+
+**代码演示**
+
+```js
+// 数组去重
+let arr = [1, 2, 3, 4, 1, 3, 5, 2, "c"];
+let data = new Set(arr); // {1, 2, 3, 4, 5, "c"}
+
+// add()
+data.add(6) // {1, 2, 3, 4, 5, "c",6}
+
+// has 
+data.has(1) // true
+
+// clean
+data.clean() // {}
+```
+
+## 七、Map对象
+
+> Map 对象保存键值对，并且能够记住键的原始插入顺序。任何值(对象或者原始值都可以作为一个键或一个值。 简单来说就是：它能够把特定的数据结构进行结构转化为`key:value`的形式
+>
+> [详细点击查看MDN](https://developer.mozilla.org/zh-CN/docs/Web/JavaScript/Reference/Global_Objects/Map)
+
+**自身携带的方法**
+
+| 方法名              | 描述                           | 返回值              |
+| ------------------- | ------------------------------ | ------------------- |
+| mObj.set(key,value) | 给map对象添加值                | map对象             |
+| mObj.has(key)       | 判断map对象是否存在key对应的值 | 布尔值              |
+| mObj.get(key)       | 获取map对象中key对应的值       | 返回键对应的值      |
+| mObj.delete(key)    | 删除map对象中key对应的值       | 布尔值              |
+| mObj.keys()         | 获取map对象中所有key值         | 新的 `Iterator`对象 |
+| mObj.values()       | 获取map对象中所有value值       | 新的 `Iterator`对象 |
+
+**代码演示**
+
+```js
+let data = new Map([
+    ["zmouse", 30],
+    ["reci", 20]
+]);
+console.log(data); // Map(2) {"zmouse" => 30, "reci" => 20} 注意：一定要这种数据结构，数组中第一个为key值，第二个为value值
+
+// set
+data.set("刘伟", 41); // Map(3) {"zmouse" => 30, "reci" => 20, "刘伟" => 41}
+
+// delete
+data.delete("刘伟"); // Map(2) {"zmouse" => 30, "reci" => 20}
+
+// has
+console.log(data.has("reci")) // true
+
+// get
+console.log(data.get("zmouse")); // 30
+```
 
