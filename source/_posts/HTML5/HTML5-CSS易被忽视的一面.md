@@ -657,7 +657,9 @@ vertical-align 垂直对齐，它只针对于**行内元素**或者**行内块�
 
 #### 十五、溢出的文字省略号显示
 
-##### 1.white-space
+##### 第一种方式：
+
+1.white-space
 
 * white-space设置或检索对象内文本显示方式。通常我们使用于强制一行显示内容 
 
@@ -667,7 +669,7 @@ white-space:normal ；默认处理方式
 white-space:nowrap ；　强制在同一行内显示所有文本，直到文本结束或者遭遇br标签对象才换行。
 ```
 
-##### 2.text-overflow 文字溢出
+2.text-overflow 文字溢出
 
 设置或检索是否使用一个省略标记（...）标示对象内文本的溢出
 
@@ -681,9 +683,7 @@ text-overflow：ellipsis ； 当对象内文本溢出时显示省略标记（...
 
 一定要首先强制一行内显示，再次和overflow属性  搭配使用
 
-![text-overflow](/medias/imges/HTML5/ignore/dot.png)
-
-**总结三步曲**
+![text-overflow](/medias/imges/HTML5/ignore/dot.png)**总结三步曲**
 
 ```css
 /*1. 先强制一行内显示文本*/
@@ -691,6 +691,21 @@ white-space: nowrap;
 /*2. 超出的部分隐藏*/
 overflow: hidden;
 /*3. 文字用省略号替代超出的部分*/
+text-overflow: ellipsis;
+```
+
+##### 第二种方式：
+
+在需要隐藏文本的盒子写上下面的css属性：
+
+```css
+/* 将对象作为弹性伸缩盒子模型显示  */
+display: -webkit-box;
+/* 设置或检索伸缩盒对象的子元素的排列方式 */ 
+-webkit-box-orient: vertical;
+/* -webkit-line-clamp用来限制在一个块元素显示的文本的行数 */
+-webkit-line-clamp: 2;
+overflow: hidden;
 text-overflow: ellipsis;
 ```
 

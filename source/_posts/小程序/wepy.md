@@ -2,7 +2,7 @@
 title: wepy
 date: 2020-07-06 19:05:42
 categories: 小程序
-top: true
+top: false
 summary: wepy
 tags: 
  - 小程序
@@ -18,6 +18,7 @@ tags:
 * 对小程序本身的性能做出了进一步优化
 * 支持第三方的 npm 资源
 * 支持多种插件处理和编译器
+* [开发文档](https://wepyjs.github.io/wepy-docs/)
 
 ## 一、wepy的安装与运行
 
@@ -240,6 +241,8 @@ methods = {
 }
 ```
 
+####3.4.3 小程序数据基本都是在`onLoad `中请求
+
 ### 3.5 wxs 脚本的使用
 
 在wepy 中使用 wxs 脚本的方式如下：
@@ -333,5 +336,276 @@ async getInfo() {
        this.$apply()
     }
 
+```
+
+## 四、wepy 开发需要注意路径问题
+
+* 在`app.wpy`的 `pages`节点下的页面路径，必须是`page/tabs/home`形式开头，这是因为我们小程序项目要根据`wepy build --watch`实时编译的到`dist`目录下的结构来查找到页面文件
+* 在`app.wpy`的`tabBar`节点下的图标路径(`iconPath、selectedIconPath`)，是以`dist`目录为根目录，`/`开头，例如`/assets/icons/cates.png`,而它的`pagePath` 和pages`数组节点一致
+* 在使用导航的时候，不管是 声明式导航还是 编程式导航中的`url`都是以`/`开头之后接上`app.wpy`中的`pages`数组下的元素，例如`<navigator url="/pages/tabs/cates">跳转</navigator>`
+* 在`.wpy`文件中，也可以使用`@`来定位到`src`目录下所要的文件，例如`@/mixins/tabs/cart.js`
+
+## 五、把页面的业务逻辑抽离到单独的`mixin`文件中
+
+为了精简每个小程序页面的代码，可以将`script`中的业务逻辑，抽离到对应的`mixin`文件中，具体步骤为:
+
+1. 在`src->mixins`文件夹下，新建与页面路径对应的`.js`文件,并初始化基本的代码结构如下
+
+```js
+import wepy from 'wepy'
+
+// 注意，必须继承自 wepy.mixin
+export default class extends wepy.mixin {}
+```
+
+2. 在对应的页面中，可以导入并使用对应的`mixin`，具体代码如下：
+
+```js
+<script>
+    import wepy from 'wepy'
+// 1. 导入外界的 mixin 文件，并接受
+// @ 就代表 src 这一层路径
+import mix from '@/mixins/tabs/home.js'
+
+export default class extends wepy.page {
+    // 2. 把导入的 mix 对象，挂载到 mixins 这个数据中就行
+    mixins = [mix]
+}
+    </script>
+```
+
+**注意：必须继承自 wepy.mixin这个类**
+
+## 六、 封装小程序中全局公用的函数
+
+1. 为了提高项目的维护性，可用性、扩展性、可以将常用的`js`逻辑，封装到`src->baseAPI.js`文件中，当然baseAPI.js文件要自己在`src`文件目录下新建，例如：
+
+* 封装全局的`baseToast`函数用来提示错误信息
+
+```js
+import wepy from 'wepy'
+
+/**
+ * 弹框提示一个无图标的 Toast 消息
+ * @str 要提示的消息内容
+ */
+wepy.baseToast = function(str = '获取数据失败！') {
+    wepy.showToast({
+        title: str,
+        // 弹框期间不会携带任何图标
+        icon: 'none',
+        duration: 1500
+    })
+}
+```
+
+2. 在`app.wpy`中导入执行`baseAPI.js`文件中的代码
+
+```html
+<script>
+    import wepy from 'wepy'
+    import 'wepy-async-function'
+    // 导入并执行 baseAPI.js 中的所有代码
+    import '@/baseAPI.js'
+</script>
+```
+
+* 封装 GET 和 POST 请求
+
+在小程序项目中，需要经常发起数据请求，因此，可以将 `wepy.request()` 函数封装，在全局下挂载`wepy.get()` 和 `wepy.post()`函数，从而发送网络请求，代码如下
+
+```js
+// src/baseAPI.js
+
+import wepy from 'wepy'
+
+// 请求根路径
+const baseURL = 'https://www.zhengzhicheng.cn/api/public/v1'
+
+/**
+ * 发起 get 请求的 API
+ * @url 请求的地址，为相对路径，必须以 / 开头
+ * @data 请求的参数对象
+ */
+wepy.get = function(url, data = {}) {
+    return wepy.request({
+        url: baseURL + url,
+        method: 'GET',
+        data
+    })
+}
+
+
+/**
+ * 发起 post 请求的 API
+ * @url 请求的地址，为相对路径，必须以 / 开头
+ * @data 请求的参数对象
+ */
+wepy.post = function (url, data = {}) {  
+    return wepy.request({
+        url: baseURL + url,
+        method: 'POST',
+        data
+    })
+}
+```
+
+## 七、 `vant`小程序UI组件库
+
+### 7.1 下载 vant 组件库
+
+* 访问`vant-weapp`的 Github 主页 https://github.com/youzan/vant-weapp
+* 点击 `Clone or Download`按钮
+* 选择`Download ZIP`
+* 解压下载的`vant-weapp-dev.zip`
+* 进入解压后的目录，将`lib`目录更改为`vant`
+* 把重命名的`vant`的目录，复制到`src->assets`目录中
+
+### 7.2 将 vant 中的组件注册为全局组件
+
+例如：徽章组件注册为全局组件
+
+1. 打开`app.wpy`文件
+2. 在`config`节点中，新增`usingComponents`节点，具体代码如下:
+
+```js
+config = {
+    // 引用并注册全局组件
+    usingComponents: {
+        // 徽章组件
+        'van-badge': './assets/vant/badge/index',
+        'van-badge-group': './assets/vant/badge-group/index'
+    }
+}	
+```
+
+## 八、interceptor  拦截器
+
+可以使用 Wepy 提供的全局拦截器对原生API 的请求进行拦截，具体方法是配置API的`config`、`fail`、`success`、`complete`回调函数，例如官方例子:
+
+```js
+import wepy from 'wepy';
+
+export default class extends wepy.app {
+    constructor () {
+        // this is not allowed before super()
+        super();
+        // 拦截request请求
+        this.intercept('request', {
+            // 发出请求时的回调函数
+            config (p) {
+                // 对所有request请求中的OBJECT参数对象统一附加时间戳属性
+                p.timestamp = +new Date();
+                console.log('config request: ', p);
+                // 必须返回OBJECT参数对象，否则无法发送请求到服务端
+                return p;
+            },
+
+            // 请求成功后的回调函数
+            success (p) {
+                // 可以在这里对收到的响应数据对象进行加工处理
+                console.log('request success: ', p);
+                // 必须返回响应数据对象，否则后续无法对响应数据进行处理
+                return p;
+            },
+
+            //请求失败后的回调函数
+            fail (p) {
+                console.log('request fail: ', p);
+                // 必须返回响应数据对象，否则后续无法对响应数据进行处理
+                return p;
+            },
+
+            // 请求完成时的回调函数(请求成功或失败都会被执行)
+            complete (p) {
+                console.log('request complete: ', p);
+            }
+        });
+    }
+}
+```
+
+* 实现数据加载期间的 loading 效果
+
+打开`app.wpy`，在`constructor()`构造函数中，通过拦截器实现`loading`效果，注意， `wepy.showLoading()` 开启之后   `wepy.hideLoading()` 要手动关闭 具体代码如下：
+
+```js
+constructor() {
+    super()
+    this.use('requestfix')
+    // 通过这一行代码，可以为异步的API，开启Promise功能，这样，异步API调用的结果，返回值是Promise对象
+    this.use('promisify')
+
+    // 拦截器
+    this.intercept('request', {
+        // 发出请求时的回调函数
+        config(p) {
+            // 显示loading效果
+            wepy.showLoading({
+                title: '数据加载中...'
+            })
+            // 必须返回OBJECT参数对象，否则无法发送请求到服务端
+            return p
+        },
+
+        // 请求成功后的回调函数
+        success(p) {
+            // 必须返回响应数据对象，否则后续无法对响应数据进行处理
+            return p
+        },
+
+        // 请求失败后的回调函数
+        fail(p) {
+            // 必须返回响应数据对象，否则后续无法对响应数据进行处理
+            return p
+        },
+
+        // 请求完成时的回调函数(请求成功或失败都会被执行)
+        complete(p) {
+            // 隐藏loading效果
+            wepy.hideLoading()
+        }
+    })
+}
+```
+
+## 九、定义全局共享数据和方法
+
+使用`app.wpy`中的`globalData`节点来实现全局共享数据，我们以`购物车`为例子
+
+1. 在`globalData`中，定义全局的购物车李彪
+
+```js
+// 专门存储全局共享的数据
+// 只需要通过 this.$parent.globalData 就可以拿到这个全局共享的数据对象
+globalData = {
+    // 全局的购物车列表
+    cart: []
+}
+```
+
+2. 和`globalData`平级，定义全局可调用的函数
+
+```js
+test() {
+    console.log('ok')
+}
+```
+
+3. 在每个小程序页面中，可通过`this.$parent`来访问全局的数据或函数：
+
+```js
+// 点击按钮，把商品添加到购物车列表中
+addToCart() {
+    // 获取到当前商品的所有信息
+    // console.log(this.goodsInfo)
+    console.log(this.$parent.globalData)
+    console.log(this.$parent)
+    // 提示用户加入购物车成功
+    wepy.showToast({
+        title: '已加入购物车',
+        icon: 'success'
+    })
+}
 ```
 
