@@ -16,7 +16,7 @@ timezone: ''
 url: https://gitee.com/mrs_liu/mrs_liu
 root:  /mrs_liu/
 # url: https://gitee.com/mrs_liu/mrs_liu
-# root: /
+# root: / 
 permalink: :year/:month/:day/:title/
 permalink_defaults:
 pretty_urls:
