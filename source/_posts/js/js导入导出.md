@@ -16,9 +16,12 @@ tags:
 
 * 导出
 
+  exports 和 module.exports 都能将模块数据进行导出，而epxorts最终是以`module.exports`为准，简单说就是exports和module.exports是地址引用关系，exports 只是指向了module.exports
+
   ```js
   // xxx是要导出的函数或变量或对象
   module.exports  = xxx
+  exports.xxx = xxx 
   ```
 
 * 导入
@@ -42,9 +45,13 @@ tags:
   * main.js
 
     ```js
-    const obj = require('./api.js')
+    const obj = require('./api.js') 
     console.log(obj.a)
     // 输出结果`hello`
+    
+    // -------------------------
+    const {a} = require('./api.js')
+    console.log(a) // hello
     ```
 
 #### 二、ES6导入导出
@@ -111,14 +118,8 @@ tags:
 
   
 
-  
-
-  
-
-  
-
 * 小结
 
   * 在`js中`导入导出有两种规范，`commonJS`与`ES6`，选择那一套导出就要用那一套的导入用于所需的加载模块中
   * 它们导入的时候都可以使用ES6的结构解析来获取导入参数值
-  * 在es6的导入中有一个`default`参数，这个参数很好用，它可以让你导入时可以任意命名并且将导入的参数挂载到这个你命名的对象的属性中去，这个和`commjs`导入时不使用结构解析效果一样
+  * 在es6的导入中有一个`default`参数，这个参数很好用，它可以让你导入时可以任意命名并且将导入的参数挂载到这个你命名的对象的属性中去，因为`export default`不能导出一个字面量对象(export default {}) ,这样用解构赋值则会报错

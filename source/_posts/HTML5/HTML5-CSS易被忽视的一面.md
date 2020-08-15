@@ -709,3 +709,11 @@ overflow: hidden;
 text-overflow: ellipsis;
 ```
 
+####十六、让 textarea 不被拖拽
+
+```css
+{
+     resize:none;
+}
+```
+

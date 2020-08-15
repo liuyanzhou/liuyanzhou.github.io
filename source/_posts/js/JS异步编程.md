@@ -392,7 +392,8 @@ Generator特点
 * 只有调用`next()`方法函数体内的代码才会执行
 * yield
   * 函数体内的`yield`后面跟`next()`方法执行后的返回值
-  * 返回值中的 value 是值，done 是判断执行是否完毕
+  * 返回值中的 value 是值，done 是判断执行是否完毕】
+  * **一次next方法会执行到一个`yield`的关键字前暂停执行**
   * yield 关键其实是暂停生成器执行，当有下一个`next`执行，则生成器函数继续往下一个`yield`执行
   * `next(参数)`方法执行的参数是会当做`yield`表达式的返回值
 * generator.throw(new Error('Generator error'))  会让生成器执行的时候抛出错误，当一定要比`next()`后执行
@@ -451,9 +452,9 @@ co(main)
 
 ### 四、Async
 
-真正意义上实现promise扁平化编程，他可以算是 Generator 的一个语法糖，现阶段`await`关键字只能出现在`async`函数下,否则报错，await 并不会阻塞代码的执行，它只是让我们更加扁平化获取到异步返回的结果数据,async函数也是会返回一个`Promise`对象，在外界可以用`then()`接收返回数据，用`catch()`接收返回的错误
+真正意义上实现promise扁平化编程，他可以算是 Generator 的一个语法糖，现阶段`await`关键字只能出现在`async`函数下,否则报错，await 并不会阻塞外部代码的执行，但会阻止和它同一作用域的代码执行，可以借助`Generator中的yield关键字执行顺序理解`，它只是让我们更加扁平化获取到异步返回的结果数据,async函数也是会返回一个`Promise`对象，在外界可以用`then()`接收返回数据，用`catch()`接收返回的错误
 
-> 注意：扁平化是指让我们异步代码编码得像同步代码，便于后期维护，并不是说让异步代码变成同步代码，我们这只是写法改变，而其本质是不变的。当一个`async`函数中有多个`await`修饰多个异步函数的时候，这时我们就可以看成异步函数依次执行，前者会阻塞后者执行
+> 注意：扁平化是指让我们异步代码编码得像同步代码，便于后期维护，并不是说让异步代码变成同步代码，我们这只是写法改变，而其本质是不变的。当一个`async`函数中有多个`await`修饰多个异步函数的时候，这时我们就可以看成异步函数依次执行，前者会阻塞后者执行，可以看成将`await`后面的代码放到这个`await`的返回的promise.then()中去，作为回调函数
 
 ```js
 // Async / Await 语法糖
@@ -558,5 +559,34 @@ async function myfn() {
 
 }
 myfn();
+```
+
+#### await会阻止同一作用域的代码执行，但不阻止外部外部代码执行
+
+```js
+async function main() {
+   try {
+    console.log(3333)
+    let users = await ajax('/api/users.json')
+    console.log(users)
+    let posts =   await ajax('/api/posts.json')
+    console.log(posts)
+    let urls = await ajax('/api/urls.json')
+    console.log(urls)
+    console.log(4444)
+       return users
+
+     } catch (e) {
+         console.log(e)
+    }
+    console.log('hahha')
+}
+main()
+console.log('heheheh')
+// 33
+// heheheh
+// users
+// urls
+// 4444 
 ```
 

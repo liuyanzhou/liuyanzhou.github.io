@@ -672,6 +672,39 @@ console.log((personProxy.name = "lagou"));
 person; //{name:"lagou",age:20}
 ```
 
+在Proxy没出来之前前端是采用`defineProperty`来进行数据监听,但这种劫持要一个一个手动添加并不像Proxy方便，性能也没	Proxy好
+
+```js
+let data = {
+    message: "测试数据",
+    age:10
+}
+// console.log(data);
+Object.defineProperty(data, "message", {
+    configurable:true, // 允许对对象操作
+    enumerable:true, // 对象可枚举
+    get() {
+        console.log("get..");
+        return "测试数据"; // data['message']
+    },
+    set(newValue) {
+        console.log("set..", newValue);
+    }
+})
+
+Object.defineProperty(data, "age", {
+    get() {
+        console.log("get..");
+        return "10"; // data['message']
+    },
+    set(newValue) {
+        console.log("set..", newValue);
+    }
+})
+```
+
+
+
 ### 七、Reflect
 
 概述：`Reflect`对象与`Proxy`对象一样，也是ES6 为了操作对象而提供的新`API`。Reflect对象的设计目的有这样几个：
@@ -1796,5 +1829,143 @@ console.log(res)
 // const reg = /(?<year>\d{4})-(?<mouth>\d{2})-(?<day>\d{2})/
 // const res = reg.exec(date)
 // console.log(res)
+```
+
+### 十九、MVVM案例
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+</head>
+
+<body>
+    <div id="app">
+        {{message}}
+        <div>
+            {{divMessage}}
+            <div>
+                {{deepDivMessage}}
+            </div>
+            <div v-html="htmlTestMessage"></div>
+            <input type="text" v-model="modeDate">{{modeDate}}
+        </div>
+    </div>
+</body>
+<script src="./myvue2.js"></script>
+<script>
+    let vm = new MyVue({
+            el: "#app",
+            data: {
+                message: '测试',
+                divMessage: 'div测试',
+                deepDivMessage: '嵌套div',
+                htmlTestMessage: "<h1>h1的测试数据</h1>",
+                modeDate: 'mode绑定的数据'
+            }
+        })
+        // console.log(vm.$options.data)
+        //     //     // console.log(vm)
+
+    // setTimeout(() => {
+    //     console.log('1233213')
+    //     vm.$options.data.message = '更改测试数据'
+    // }, 2000)
+</script>
+
+</html>
+```
+
+```js
+class MyVue extends EventTarget {
+    constructor(options) {
+        super()
+            // console.log(options)
+        this.$options = options
+        this.compile()
+        this.observe(this.$options.data)
+    }
+    observe(data) {
+        let keys = Object.keys(data)
+        keys.forEach(key => {
+            // console.log(data, key, data[key])
+            this.defineReact(data, key, data[key])
+        })
+    }
+    defineReact(data, key, value) {
+        const _this = this
+        Object.defineProperty(data, key, {
+            get() {
+                console.log('get....')
+                return value
+            },
+            set(newValue) {
+                console.log('set...')
+                let event = new CustomEvent(key, {
+                    detail: newValue
+                })
+                _this.dispatchEvent(event)
+                value = newValue;
+            }
+        })
+    }
+    compile() {
+            this.el = document.querySelector(this.$options.el)
+            this.compileMode(this.el)
+        }
+        // 渲染逻辑
+    compileMode(el) {
+        let childNodes = el.childNodes
+        childNodes.forEach(node => {
+            if (node.nodeType === 1) {
+                // 标签节点
+                // 得到标签节点属性
+                let attrs = node.attributes
+                if (attrs.length > 0) {
+                    [...attrs].forEach(attr => {
+                        let attrName = attr.name
+                        let attrValue = attr.value
+                        if (attrName.startsWith('v-')) {
+                            attrName = attrName.substr(2)
+                            if (attrName === 'html') {
+                                node.innerHTML = this.$options.data[attrValue]
+                            } else if (attrName === 'model') {
+                                node.value = this.$options.data[attrValue]
+                                node.addEventListener('input', e => {
+                                    this.$options.data[attrValue] = e.target.value
+                                })
+                            }
+                        }
+                    })
+                }
+                // 判断是否存在子节点
+                if (node.childNodes.length > 0) {
+                    this.compileMode(node)
+                }
+            } else if (node.nodeType === 3) {
+                // 文本节点
+                let reg = /\{\{\s*(\S+)\s*\}\}/g
+                let textContent = node.textContent
+                if (reg.test(textContent)) {
+                    let $1 = RegExp.$1
+                    node.textContent = node.textContent.replace(reg, this.$options.data[$1])
+                    this.addEventListener($1, e => {
+                        // 重新选视图
+                        // console.log("触发了修改..");
+                        let oldValue = this.$options.data[$1]
+                        let reg = new RegExp(oldValue)
+                        node.textContent = node.textContent.replace(reg, e.detail)
+                    })
+                }
+            }
+        })
+
+    }
+}
 ```
 

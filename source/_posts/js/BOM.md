@@ -130,11 +130,20 @@ BOM（Browser Object Model）即浏览器对象模型，它提供了独立于内
 
 ```js
 window.addEventListener('load', function() {
-    var div = document.querySelector('div');
     window.addEventListener('resize', function() {
         console.log(window.innerWidth);
         console.log('变化了');
     })
+})
+```
+
+### 2.3 监听窗口关闭事件
+
+`beforeunload` 会在当前页面关闭前触发事件
+
+```js
+window.addEventListener('beforeunload', function() {
+   // .... 业务逻辑
 })
 ```
 
@@ -423,7 +432,7 @@ console.log(2);
 
 > 由于主线程不断的重复获得任务、执行任务、再获取任务、再执行，所以这种机制被称为事件循环（ event loop）
 
-## 七、本地存储
+## 七、客户端存储
 
 > 随着互联网的快速发展，基于网页的应用越来越普遍，同时也变的越来越复杂，为了满足各种各样的需求，会经常性在本地存储大量的数据，HTML5规范提出了相关解决方案。
 
@@ -437,8 +446,12 @@ console.log(2);
 ### 7.2window.sessionStorage
 
 * 生命周期为关闭浏览器窗口
-* 在同一个窗口(页面)下数据可以共享
+* 存储数据页面私有
 * 以键值对的形式存储使用
+* 受同源策略影响
+* 存储的内容会转为字符串格式
+* 有存储大小限制
+* **不支持 storage 事件**
 
 | 方式                              | 描述                   |
 | --------------------------------- | ---------------------- |
@@ -490,8 +503,12 @@ console.log(2);
 ### 7.3window.localStorage
 
 * 声明周期永久生效，除非手动删除 否则关闭页面也会存在
-* 可以多窗口(页面)共享(同一浏览器可以共享)
+* 可以多窗口(页面)共享(同一浏览器可以共享)【 也就是同域下页面共享】
 * 以键值对的形式存储使用
+* 受同源策略影响
+* 存储的内容都会转为字符串格式
+* 有存储大小限制
+* **支持 storage 事件**
 
 | 方式                            | 描述                   |
 | ------------------------------- | ---------------------- |
@@ -533,5 +550,137 @@ console.log(2);
         })
     </script>
 </body>
+```
+
+###7.4 storage 事件 
+
+storage事件能够监听到`localStorage`存储的数据变化
+
+```js
+window.addEventListener("storage", function(e) {
+  // ....业务逻辑
+})
+```
+
+在事件对象`e`中我们可以获取到常用的值
+
+* oldValue：更新前的值。如果该键为新增加，则这个属性为null。   
+*  newValue：更新后的值。如果该键被删除，则这个属性为null。 
+*  url：原始触发storage事件的那个网页的网址路径。  
+*  key：发生变化的值
+
+##八、cookie
+
+cookie是http协议下，服务端和客户端都能操作的一种维护用户信息的一种方式
+
+特点：
+
+* 浏览器会在每次请求的时候主动住址私有域下的cookie到请求头 cookie字段中，发给服务器端
+* 浏览器会主动存储接收到的 `set-cookie`头信息的值
+* 服务器端可以设置`http-only`属性为true（默认就是true）来禁止客户端(js)操作服务器端下发的cookie值
+* 可以设置有效期(默认浏览器关闭自动销毁，不同浏览器有所不同)
+* 同域下个数有限制，最好不要超过50个（不同浏览器有所不同)
+* 单个cookie内容大小有限制，最好不要操作`4000`字节（不同浏览器有所不同）
+* 受同源策略影响
+* 存储的内容会转为字符串格式
+
+### 8.1 koa中使用cookie
+
+* 存储cookie
+
+```js
+ctx.cookies.set(name, value, [options])
+// 例如：
+ctx.cookies.set("isLogin", loginStatus, {
+    maxAge: 1 * 1000 * 3600 * 24 * 7,
+    path: '/',
+    httpOnly: false
+})
+```
+
+* 获取cookie的值
+
+```js
+ctx.cookies.get(name, [options])
+// 例如：
+ctx.cookies.get('isLogin')
+```
+
+options常用的设置
+
+| 属性值    | 描述                                                         |
+| --------- | ------------------------------------------------------------ |
+| maxAge    | 一个数字表示从 Date.now() 得到的毫秒数                       |
+| expires   | cookie 过期的 `Date`                                         |
+| path      | cookie 路径, 默认是`'/'`                                     |
+| secure    | 安全 cookie  设置后只能通过https来传递cookie                 |
+| httpOnly  | 浏览器是否能够获取到服务器设置的cookie, 默认是 **true**（即只有服务端可以获取到自己设置的cookie，浏览器不能），浏览器想要获取则设置`false`，它是有效阻止暴露用户cookie信息手段 |
+| overwrite | 一个布尔值，表示是否覆盖以前设置的同名的 cookie (默认是 **false**). 如果是 true, 在同一个请求中设置相同名称的所有 Cookie |
+
+### 8.2 客户端使用cookie
+
+* 设置
+
+```js
+document.cookie="key=value"
+```
+
+> key和value是包含在一个字符串中
+>
+> key包含字段
+>
+> * [name] 这个name为自己取的cookie名称，同名的值会覆盖
+>
+> * domain 所属域名
+>
+> * path 所属路径
+>
+> * Expires/Max-Age 到期时间/持续时间 (单位是秒)
+>
+> * http-only 是否只作为http时使用，如果为true，那么客户端能够在http请求和响应中进行传输，但时客户端浏览器不能使用js去读取或修改
+>
+>多个key=value使用 ; （分号）分隔
+
+* 获取
+
+```js
+document.cookie
+```
+
+> 返回值是当前域名下的所有cookie，并按照某种格式组织的字符串 ：key=value;key1=value1;......keyn=valuen
+
+由于客户端获取cookie比较麻烦则我们可以封装设置/获取cookie的方法
+
+设置cookie
+
+```js
+function setCookie(name, value, options = {}) {
+    let cookieData = `${name}=${value};`;
+    for (let key in options) {
+        let str = `${key}=${options[key]};`;
+        cookieData += str;
+    }
+    document.cookie = cookieData;
+}
+
+// 调用
+setCookie("key", '123', { "Max-Age": 3600 * 24 })
+```
+
+获取cookie
+
+```js
+function getCookie(name) {
+    let arr = document.cookie.split('; ')
+    for (let i = 0; i < arr.length; i++) {
+        let arr2 = arr[i].split('=')
+        if (arr2[0] == name) {
+            return arr2[1]
+        }
+    }
+    return ''
+}
+// 调用
+getCookie('key')
 ```
 
