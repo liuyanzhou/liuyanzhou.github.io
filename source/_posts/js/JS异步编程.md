@@ -215,8 +215,9 @@ process.on('unhandledRejection', (reason, promise) => {
 
 #### 2.3 Promise 静态方法
 
-* Promise.resolve() : 相当于一个成功的promise回调
-* Promise.reject() : 相当于一个失败的promise回调，不管你传入什么值都作为这个Promise失败的理由
+* Promise.resolve(可传递参数) : 相当于一个成功的promise回调
+* Promise.reject(可传递参数) : 相当于一个失败的promise回调，不管你传入什么值都作为这个Promise失败的理由
+* 调用这个两个方法都会返回一个promise对象，并且如果有传入参数，那么在返回的promise对象的`then`或`catch`方法中能获取到传入的参数
 
 ```js
 // Promise.resolve()
