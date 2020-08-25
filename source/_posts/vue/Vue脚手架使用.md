@@ -1,15 +1,15 @@
 ---
-title: Vue脚手架使用
+title: Vue脚手架使用与单文件
 date: 2020-04-10 22:22:04
 img: /medias/imges/vue/vue.jpg
 categories: Vue
 top: true
-summary: Vue脚手架使用
+summary:  Vue脚手架使用与单文件
 tags: 
  - Vue
 ---
 
-## Vue脚手架
+## 一、Vue脚手架
 
 > 还在为构造`vue`项目时被命令行那丑陋的面孔所支配吗？那么你有必要阅读这篇文章，它将打开你`vue`项目构造大门😀
 >
@@ -62,6 +62,13 @@ npm install -g @vue/cli
 
 ![项目结构](/medias/imges/vue/vue-cli/vue-cli-2-6.png )
 
+* src ：这个是存放的我们项目源码，我们开发过程中大部分的时间就在这个目录
+* mian.js : 项目入口文件
+* App.vue: 首先，这是 vue 提供的一种单文件组件的文件模式，一个`.vue`文件就是一个独立的组件，这里的 App.vue 是用于的根组件
+* components穆克拉：存放组件的目录
+* assets目录： 存放静态资源的目录，比如：图片、css等。这里的文件与外层的`public`目录存放的静态资源的最大区别是: assets 存放的资源是通过`import`等方式作为模块导入，最后打包处理的，而 public 中的资源并不通过模块方式导入，一般都是通过`script`、`link`、`img`等方式从浏览器引入资源，比如无法通过模块处理的js文件(这样的情况并不多)
+* public: 一些并非通过模块方式引入的资源文件存放的位置，一般都是通过`script`、`link`、`img`等方式从浏览器引入的资源，比如无法通过模块处理的js文件(这样的情况并不多)
+
 ### 4.Vue 脚手架的自定义配置 
 
 #### 4.1通过 package.json 配置项目 
@@ -101,6 +108,121 @@ npm install -g @vue/cli
 * 点击 插件 -> 添加插件，进入插件查询面板 
 * 搜索 vue-cli-plugin-element 并安装 
 * 配置插件，实现按需导入，从而减少打包后项目的体积 } }
+
+##二、单文件使用
+
+vue的文件组是官方提供的一种用来组件代码的形式，该文件以`.vue`为后缀，该文件会被`vue-cli`内置的`webpack`解析生成对应的`javascript`、`html`、`css`
+
+官网：https://vue-loader-v14.vuejs.org/zh-cn/start/spec.html
+
+- 组成
+
+```vue
+<template>
+<div class="example">{{ msg }}</div>
+</template>
+
+<script>
+    export default {
+        data () {
+            return {
+                msg: 'Hello world!'
+            }
+        }
+    }
+</script>
+
+<style>
+    .example {
+        color: red;
+    }
+</style>
+```
+
+单文件组件把一个组件包含的 结构、样式、行为分别通过 `template`、`style`、`script`进行分离包含，然后统一组织在一个文件中，而且一个单文件组件最少必须包含`template`，可以不需要`script、style`
+
+- lang属性
+
+无聊是 template 、script 、还是 style ，都可以通过 lang 属性来指定它们所使用的语言
+
+```vue
+<template lang="jade">
+div.example
+p {{ msg }}
+</template>
+
+<script lang="ts">
+    import Vue from 'vue'
+    export default Vue.extend({
+        data () {
+            return {
+                msg: 'Hello world'
+            }
+        }
+    })
+</script>
+
+<style lang="stylus">
+.example
+  color red
+</style>
+```
+
+- src 属性
+
+我们还可以通过 src 属性把文件分离到单独的文件中
+
+```vue
+<template src="./template.html"></template>
+<style src="./style.css"></style>
+<script src="./script.js"></script>
+```
+
+> 这里的 src 通过遵循模块化的导入规则，`./`开头相对路径，`/`开头表示 NPM 包中的资源
+
+- 有作用域的 css
+
+当 `style`标签有`scoped`属性时，它的css值作用域当前组件组件中的元素，这类似于 shadow DOM 中的样式封装
+
+```vue
+<style scoped>
+    .example {
+        color: red;
+    }
+</style>
+
+<template>
+<div class="example">hi</div>
+</template>
+```
+
+解析后
+
+```vue
+<style>
+    .example[data-v-f3f3eg9] {
+        color: red;
+    }
+</style>
+
+<template>
+<div class="example" data-v-f3f3eg9>hi</div>
+</template>
+```
+
+-  资源路径处理
+
+在项目开发中，我们经常会碰到要引入外部资源的需求，vue 单文件系统中，对资源引入路径有一定特殊出来，分为：绝对路径前缀、相对路径前缀、特殊前缀
+
+1. 绝对路径前缀：就是以`/`、`http://baidu.com/`等这样的绝对路径开头的，vue-cli不做任何处理，直接被浏览器解析
+2. 相对路径前缀：就是以`./`、`../`这样的相对路径开头，将会被看做相对的模块用来，并按照本地文件系统上的目录结构进行解析，如`<img src="../a.png >"`解析后`<img src="require('../a.png')">`,类似的还包括`background:url(...)`和`@import`
+3. 特殊前缀：如果路径以`@`开头，也会被看做模块依赖，如果你的 webpack配置中给 `@`配置了`alias`，则以配置的位置为主，否则vue-cli创建的项目都默认配置了将`@`指向`/src`,也就是指向src目录
+
+
+
+
+
+
 
 ### 寄语
 

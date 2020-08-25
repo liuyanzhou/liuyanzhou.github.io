@@ -2,7 +2,7 @@
 title: vuex使用
 date: 2020-04-13 18:20:50
 img: /medias/imges/vue/vue.jpg
-categories: Vuex
+categories: Vue
 top: true
 summary: Vuex使用
 tags: 
