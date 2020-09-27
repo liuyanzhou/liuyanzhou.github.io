@@ -1,12 +1,12 @@
 ---
 title: webpack常规配置篇
 date: 2020-04-10 08:37:20
-categories: webpack
-img: /medias/imges/webpack/webpack.png
+categories: tools
+img: /medias/imges/tools/webpack/webpack.png
 top: true
 summary: webpack常规配置 
 tags: 
- - webpack
+ - tools
 ---
 
 ## webpack常规配置篇
@@ -269,11 +269,11 @@ webpack 中有几个不同的选项，可以帮助你在代码发生变化后自
 
   * 开发环境推荐：
 
-  ​	**cheap-module-eval-source-map**
+  		**cheap-module-eval-source-map**
 
   * 生产环境推荐：
 
-  ​	**none(不使用source map,上线打包时去掉devtool节点或值为none)**
+  		**none(不使用source map,上线打包时去掉devtool节点或值为none)**
 
 ### 9.clean-webpack-plugin
 

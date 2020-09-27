@@ -151,9 +151,9 @@ window.addEventListener('beforeunload', function() {
 
 ### 3.1设置定时器
 
-| window.setTimeout(回调函数，[延迟的毫秒数])              | window.setInterval(回调函数，[间隔的毫秒数])           |
-| -------------------------------------------------------- | ------------------------------------------------------ |
-| 用于设置一个定时器，该定时器在定时器到期后执行调用函数。 | 法重复调用一个函数，每隔这个时间，就去调用一次回调函数 |
+| window.setTimeout(回调函数，[延迟的毫秒数])              | window.setInterval(回调函数，[间隔的毫秒数])         |
+| -------------------------------------------------------- | ---------------------------------------------------- |
+| 用于设置一个定时器，该定时器在定时器到期后执行调用函数。 | 重复调用一个函数，每隔这个时间，就去调用一次回调函数 |
 
 注意：
 
@@ -226,42 +226,44 @@ setInterval(function() {
 
 this指向主要有这几方面:
 
-1. 全局作用域或者普通函数中this指向全局对象window（注意定时器里面的this指向window）
-2. 方法调用中谁调用this指向谁
-3. 构造函数中this指向构造函数的实例
+1. 函数中的this在哪被调用就指向那，全局调用就指向全局（浏览器上是window，但严格模式式undefined，node中时 global），通过对象调用就指向对象。（注意定时器里面的this指向window）
+2. 构造函数中this指向构造函数的实例 , （通过new 出来的）
+3. call / apply / bind 强制改变this的指向 例如： foo.call('123')  ----> this的指向就是 '123'
+
+> 我们可以将判断 this 的方法总结为：沿着this作用域向上找最近的一个 function，看这个 function 最终是怎样执行的。 
 
 **代码演示:**
 
-```html
-<button>点击</button>
-<script>
-    // this 指向问题 一般情况下this的最终指向的是那个调用它的对象
-    // 1. 全局作用域或者普通函数中this指向全局对象window（ 注意定时器里面的this指向window）
-    console.log(this);
-    function fn() {
-        console.log(this);
-    }
-    window.fn();
-    window.setTimeout(function() {
-        console.log(this);
-    }, 1000);
-    // 2. 方法调用中谁调用this指向谁
-    var o = {
-        sayHi: function() {
-            console.log(this); // this指向的是 o 这个对象
+```js
+// 这里的this指向全局，因为foo直接在全局调用
+function foo() {
+    console.log(this)
+}
+foo()
+
+// 这里this指向全局，因为 bar 是在全局作用域下被调用的
+const obj2 = {
+    foo: function() {
+        function bar() {
+            console.log(this)
         }
+        bar()
     }
-    o.sayHi();
-    var btn = document.querySelector('button');
-    btn.addEventListener('click', function() {
-        console.log(this); // 事件处理函数中的this指向的是btn这个按钮对象
-    })
-    // 3. 构造函数中this指向构造函数的实例
-    function Fun() {
-        console.log(this); // this 指向的是fun 实例对象
+}
+obj2.foo()
+
+// 这里的this指向obj2，因为bar采用的是箭头函数，而箭头函数是不改变this指向，则离bar最近的function是 foo ，而foo是通过obj2调用的，所以this指向obj2
+const obj2 = {
+  foo: function () {
+    const bar = () => {
+      console.log(this)
     }
-    var fun = new Fun();
-</script>
+    bar()
+  }
+}
+
+obj2.foo()
+
 ```
 
 ## 五、location对象

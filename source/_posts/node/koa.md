@@ -157,6 +157,11 @@ router.get('/getData', async ctx => {
     }
 })
 
+// 匹配全局路由
+router.all('/(.*)',async ctx=>{
+    ctx.body = '没有该路由'
+})
+
 app.listen(3000, () => {
     console.log('服务器开启')
 })

@@ -410,7 +410,59 @@ vue：通过对象数据监听的方式进行视图更新
 </html>
 ```
 
-#### 1.7 小结：
+#### 1.7 $options属性
+
+this.$options属性上挂载着组件上所有的属性和方法，包括data ，methods，以及自定义属性等.....。也就是export default 括号里面的所有东西都包括
+
+```js
+export default {
+    img:'123',
+    name:'Home',
+    data() {
+        return {
+            items:[],
+            sort:'asc'
+        }
+    }, 
+    filters:{
+        RMB
+    },
+    components:{
+        Son
+    },
+    created() {
+    this.getItem()
+    },
+    mounted() {
+        console.log(this.$options)
+        console.log(this.$options.img)
+    },
+    methods:{
+        getItem() {
+            this.sort = this.$route.query.sort || this.sort
+             this.axios({
+                url: '/api/items',
+                params:{
+                    sort:this.sort
+                }
+            }).then(res => {
+               this.items = res.data;
+            });
+        },
+        goto({target: {value}}) {
+            this.$router.push({name:'Home',query:{sort:value}})
+        }
+    },
+    watch:{
+        $route(to,from) {
+            console.log(to)
+            this.getItem()
+        }
+    }
+}
+```
+
+#### 1.8小结：
 
 * vue 帮助我们做的事情：把data与template进行结合，然后渲染得到最终结构，最后把这个结构(内容)添加到挂载点的位置
 * vue渲染界面的过程：template => VDOM(虚拟dom) => html 
@@ -1631,6 +1683,18 @@ watch: {
 }
 ```
 
+* immediate与deep一样，当watch监听的属性写成对象形式时，是其的一个参数配置，值为`true or false`,但为 true时，这代表页面一刷新，被其监听的数据就会立刻执行watch中定义的 handler 方法，而不需要监听的数据发生变化才触发。当然监听的数据变化时，它也会被执行。通俗的说：它与未配置`immediate`参数的监听方法多一次自动触发而已。例如：我们一进入页面就要监听路由的携带的参数是否有变化，而对其做相对应的数据请求。
+
+```js
+watch:{
+    $route:{
+     	// ....  
+        },
+     immediate:true
+    }
+},
+```
+
 ### 六、组件
 
 #### 6.1 组件概念
@@ -1877,7 +1941,7 @@ this.$emit('自定义事件名称',子组件传给父组件的事件数据)
 </html>
 ```
 
-#### 6.5 组件双绑的实现
+#### 6.5 组件双绑的实现（v-model）
 
 虽然并不推荐在组件内部修改`props`，但是，有的时候确实希望组件内部状态变化的时候改变`props`对应的父组件的值，那么我们可以通过子组件触发事件，父级监听事件来达到这个目的，不过过程会比较繁琐，vue提供了一些操作来简化这个过程
 
@@ -1999,6 +2063,75 @@ v-model 是 vue 提供的一个用于实现数据双绑的指令，用来简化`
     </script>
 </html>
 ```
+
+另一种写法
+
+```html
+<!--父组件-->
+<template>
+	<div>
+       <Stuff 
+        v-model="info"
+      ></Stuff>
+    </div>
+</template>
+
+<script>
+export default {
+  name: 'create',
+  components: {Stuff,Upload,UploadImg},
+  data() {
+        return {
+            info:'123'
+        }
+    }
+}
+</script>
+
+<!--子组件-->
+<template>
+  <div class="stuff">
+    <div class="clearfix">
+      {{value}}
+      <div class="raw-item" v-for="(item,index) in value" :key="index" >
+        <el-input placeholder="请输入内容" style="width: 200px" v-model="item.name" ></el-input>
+        <el-input placeholder="请输入内容" style="width: 100px" v-model="item.specs"></el-input>
+        <i class="delete-icon el-icon-close" v-show="value.length !== 1" @click="remove(index)"></i>
+      </div>
+    </div>
+    <el-button  class="eaeaea" type="primary" size="medium" icon="el-icon-plus" @click="add">增加一项</el-button>
+  </div>
+</template>
+
+<script>
+// v-model 在组件上面双向绑定 value 发布事件input 
+export default {
+  props: {
+    value: {
+      type: Array,
+      default: () => []
+    }
+  },
+  methods:{
+    remove(index){
+      const newValue = this.value.filter((item, i) => {
+        return i !== index;
+      })
+      // 触发input 事件去修改
+      this.$emit('input', newValue)
+    },
+    add(){
+      this.$emit('input', [
+        ...this.value,
+        { "name": "", "specs": "" }
+      ])
+    }
+  }
+}
+</script>
+```
+
+上面实例中：v-model 直接传递绑定的值，我们的子组件内部可以通过 value 字段在 props 中直接接收，在通过 this.$emit('input',传递修改好的值) 去修改父组件上与 v-model 绑定的值
 
 #### 6.6 .sync
 
@@ -2988,22 +3121,6 @@ component 是 vue 内置的一个组件，它他提供了一个 `is`属性用来
 </style>
 
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 ### 扩展
 

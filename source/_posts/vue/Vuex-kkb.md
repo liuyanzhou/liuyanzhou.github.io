@@ -2,7 +2,7 @@
 title: Vuex-kkb
 date: 2020-08-25 17:03:31
 categories: Vue
-top: true
+top: false
 summary:  Vuex
 tags: 
  - Vue
@@ -653,6 +653,19 @@ import {mapState} from 'vuex'
 </script>
 ```
 
+模块化开发的时
+
+```js
+// ....
+computed:{
+    // 第一个参数 user 是模块名，第二个参数是获取user模块地下的数据 
+    ...mapState('user',{
+        user:state=>state.info
+    })
+}
+// ....
+```
+
 #### 6.2 getters
 
 有时候我们需要从 store 中的state 中派生出有些数据，类似组件的`computed`，`store`也提供了一个`getters`对象来处理派生数据
@@ -781,7 +794,7 @@ payload：（载荷）提交的额外数据，任意格式
 
 * mutations 函数介绍
 
-mutations 中的函数被`commit`执行的时候，接收两个参数
+mutations 中的函数被`commit`执行的时候（也就是mutations中定义函数时，接收两个形参），接收两个参数
 
 1. 第一个参数：`state`对象
 2. 第二个参数：`commit`提交的`payload`
@@ -789,7 +802,7 @@ mutations 中的函数被`commit`执行的时候，接收两个参数
 在 mutations 函数中，我们就可以通过 state 对象进行状态数据的修改
 
 * vuex也提供了 mutations 的辅助函数`mapMutations`，与`mapState`函数类似，但其一般把 mutations 节点上的函数映射为组件 methods节点上的函数，这样我们就可以直接通过`this.mutations上的方法`调用
-* **mutations函数处理的业务逻辑必须是同步的，因为commit方法没有返回值**
+* **mutations函数处理的业务逻辑必须是同步的，因为commit方法没有返回值，也不支持promise**
 
 ```js
 import Vue from 'vue'
@@ -1228,7 +1241,7 @@ Home.vue 相对应的改变
             this.c = this.$store.state.content
         },
         methods:{
-            // actions 上的方法需要映射调用
+            // actions 上的方法需要映射调用，U是模块名
             ...mapActions('U',['addNewUser']),
             async  postAddNewUser() {
             try {
@@ -1262,4 +1275,5 @@ Home.vue 相对应的改变
 
 1. getters 函数的调用要加上模块别名，改为`this.$store.getters['U/showUsers']`, -> `this.getters[U/xxx]`
 2. action 函数的调用要借助于辅助函数`mapActions`进行映射到组件上的 methods节点上，之后我们就可以直接通过`this.xxx`直接调用
-3. 其他改变我们可以直接从 vuedevTools工具上查看
+3. state 的映射 通过`mapState()`，在上文有讲模块化开发时，如何进行映射。
+4. 其他改变我们可以直接从 vuedevTools工具上查看
