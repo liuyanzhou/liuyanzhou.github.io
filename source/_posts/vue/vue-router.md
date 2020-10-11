@@ -553,6 +553,24 @@ router.beforeEach((to,from,next) => {
 })
 ```
 
+常见的路由守卫
+
+```js
+router.beforeEach((to, from, next) => {
+    // 如果该路由需要鉴权，则验证用户的信息，如果不通过则跳转到登录页
+    if (
+        to.matched.some(matched => matched.meta.requiresAuth) &&
+        !Store.state.User.userInfo
+    ) {
+        next({
+            name: 'Login'
+        });
+    } else {
+        next();
+    }
+});
+```
+
 * beforeResolve
 
 在所有组件内守卫和异步路由组件被解析之后被调用

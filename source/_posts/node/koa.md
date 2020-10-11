@@ -1,5 +1,5 @@
 ---
-title: koa
+ktitle: koa
 date: 2020-08-11 21:05:33
 top: false
 categories: node
@@ -11,6 +11,14 @@ tags:
 ### Koa
 
 koa是express原班原马打造的轻量、健壮、富有表现力的`nodeJS`框架，目前koa有`koa1`和`koa2`两个版本，koa2用来`node.js7.6.0`或者更高版本；koa不在内核方法中绑定任何中间件，它仅仅是一个轻量级的函数库，几乎所有功能都必须通过第三方插件来实现
+
+koa1 与 koa2 、express之间的区别只要在于获取异步任务的结果的方式不同
+
+| 框架名  | 作用    | 异步处理          |
+| ------- | ------- | ----------------- |
+| Express | web框架 | 回调函数          |
+| Koa     | web框架 | Generator + yield |
+| Koa2    | web框架 | async / await     |
 
 [官网](https://koa.bootcss.com/)
 
@@ -41,7 +49,14 @@ app.listen(3000,()=>{
 
 node框架都是靠中间件来扩展自己的能力，不管是`express`还是`koa`都是要靠中间来扩展自己的业务处理能力，也同样是给我们context添加相应的处理方法
 
-中间件可以看做一条河流，从上游开始往下游传递`next()方法`，注册中间件的方法`app.use(相应的中间件配置)`，可以将中间件的配置理解为一个函数
+中间件可以看做一条河流，从上游开始往下游传递`next()方法`，而在中间处理好了请求，往浏览器响应请求的时候，是从后一个中间传递到上一个中间的`next()`函数位置，并继续往下执行next函数后的代码。注册中间件的方法`app.use(相应的中间件配置)`，可以将中间件的配置理解为一个函数
+
+中间件的特点：
+
+* 一个中间件就是一个函数
+* 中间件的执行顺序符合洋葱模型
+* 内层中间件能否执行取决于外层中间件的`next`函数
+* 调用next函数得到的是`Promise`对象，它是用下一个中间件挂载的函数中`return`的值
 
 ```js
 //这里的middleWare函数就是一个中间件
@@ -50,6 +65,12 @@ let middleWare = async (ctx,next)=>{
     ctx.body = "hello world";
 }
 app.use(middleWare);
+
+app.use(async(ctx,next)=>{
+    // 刚进入中间件想做的事情
+    await next()
+    // 内层所有中间件结束之后想做的事情
+})
 ```
 
 中间件是通过`next()`方法来往下一个中间件传递信息，执行顺序可以通过`洋葱模型`来理解
@@ -359,6 +380,26 @@ const connection = mysql.createConnection({
 app.use(async ()=>{
     // 调用promise()方法返回promise对象 rows 是查询返回的数据数组
     const [rows] =  await connection.promise().query(sql)
+})
+```
+
+#### 4.6 koa2-cors
+
+koa2-cors是给后端响应添加让浏览器允许接收跨域请求信息的包，官网:https://www.npmjs.com/package/koa2-cors
+
+```js
+const Koa = require('koa')
+const cors = require('koa2-cors')
+const app = new Koa()
+// 跨域基础配置
+app.use(cors({
+    // 接收的请求源
+    origin: ['http://localhost:9528'],
+    // 全局证书，设为 true 即可
+    credentials: true
+}))
+app.listen(3000,()=>{
+    console.log('服务器开启....')
 })
 ```
 
@@ -744,6 +785,8 @@ index.html
     </script>
 </html>
 ```
+
+websockt的用法在开发中用处很多。例如demo的`电商数据可视化`的项目中，我们要实现多个客户端的界面进行同步的业务需求，那么就可以通过`websocket`作为多个客户端的中间信息传输层，让多端操作同步于一端。它的实现方式是先在展示的组件上`注册要触发的事件`，在从`websocket`响应中提取所需要触发的图表信息和函数进行触发。具体看demo中项目写法。
 
 #### 5.4 socket.io 
 

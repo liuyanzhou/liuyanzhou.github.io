@@ -462,12 +462,187 @@ export default {
 }
 ```
 
-#### 1.8小结：
+#### 1.8 Vue.$extend(option)
+
+option 属于 `Object`，使用基础 Vue 构造器，创建一个“子类”。参数是一个包含组件选项的对象。可以通过它结合工厂函数，我们就可以利用`js`像操作`DOM`元素一样操作组件，例如：我们封装一个提示消息的组件
+
+组件文件：`TMessage.vue`
+
+```html
+<template>
+    <transition name="message-fade">
+        <div :class="[
+        'message',
+        'message-' + type,
+        center ? 'is-center' : ''
+    ]"
+             :style="{top: offset + 'px'}"
+             v-if="!closed"
+        >
+            <p class="message-content">提示信息：{{message}}</p>
+            <i class="icon icon-close"></i>
+        </div>
+    </transition>
+</template>
+
+<script>
+    export default {
+        name: 'TMessage',
+
+        data() {
+            return {
+                message: '这是默认信息',
+                type: 'info',
+                center: true,
+                offset: 20,
+                closed: false,
+                duration: 1000,
+                timer: null,
+                onClose: null
+            }
+        },
+
+        mounted() {
+            this.timer = setTimeout(() => {
+                if (!this.closed) {
+                    this.close();
+                }
+            }, this.duration);
+        },
+
+        methods: {
+            close() {
+                this.closed = true;
+                if (typeof this.onClose === 'function') {
+                    this.onClose();
+                }
+            }
+        }
+    }
+</script>
+```
+
+使用工厂函数：`TMessage.js`
+
+```js
+import Vue from 'vue';
+// 上一步的组件文件导入
+import TMessage from "./TMessage.vue";
+
+const TMessageClass = Vue.extend(TMessage);
+
+/**
+ * 工厂函数
+ *  创建一个TMessage组件对象
+ *  管理TMessage组件对象队列
+ */
+let instances = [];
+function Message(data) {
+
+    data = data || {};
+    if (typeof data === 'string') {
+        data = {
+            message: data
+        }
+    };
+
+    data.onClose = function() {
+        // console.log('onClose');
+        Message.close(instance);
+    };
+
+    let instance = new TMessageClass({
+        data
+    });
+
+    instance.$mount();  // $el
+    document.body.appendChild(instance.$el);
+
+    let offset = data.offset || 20;
+    let offsetTop = offset;
+    instances.forEach( item => {
+        offsetTop += item.$el.offsetHeight + offset;
+    } );
+
+    instance.$el.style.top = offsetTop + 'px';
+
+    instances.push(instance);
+}
+
+['info', 'success', 'error', 'warning'].forEach( type => {
+    Message[type] = function(data) {
+        if (typeof data === 'string') {
+            data = {
+                message: data
+            }
+        };
+        data.type = type;
+        return Message(data);
+    };
+} );
+
+Message.close = function(instance) {
+    /*
+    * 获取当前这个instance的高度
+    * 把这个instance后面的所有实例的top减去这个高度，再减去偏移
+    * */
+    let removeHeight = instance.$el.offsetHeight + instance.offset;
+    let index = instances.findIndex( item => item === instance );
+    instances = instances.filter( item => item !== instance );
+
+    for (let i = index; i<instances.length; i++) {
+        instances[i].$el.style.top = parseFloat(instances[i].$el.style.top) - removeHeight + 'px';
+    }
+};
+
+
+export default Message;
+```
+
+使用：通常将其挂载到我们`VUE原型上`，供全局使用
+
+```js
+// 在项目的main.js中挂载全局
+// ....代码省略
+import TMessage from '@/components/TMessage/TMessage.js';
+Vue.prototype.$message = TMessage;
+
+// 在视图组件的调用方式 例如login组件
+this.$message.error('用户名和密码不能为空')
+```
+
+#### 1.9 mixins 混入
+
+当我们的程序代码出现很多相同冗余的代码，我们可以将其他提取出来，在利用Vue提供的`mixins`功能进行混入。例如我们需要在多个视图界面下的`components`注册相同组件，这时我们可以提取其中的组件注册部分代码到一个特定的文件下。
+
+```js
+// 冗余代码提取到mixins下的文件
+// 引入组件
+import CommonCard from '@/components/TopViews/CommonCarrd'
+
+export default {
+    components: {
+        CommonCard
+    }
+}
+```
+
+混入组件代码： 按下面混入即可
+
+```js
+import CommonCard from '@/mixs/CommonCard'
+
+export default { 
+    // ... 
+	mixins:[CommonCard]
+    // ...
+}
+```
+
+本大章小结：
 
 * vue 帮助我们做的事情：把data与template进行结合，然后渲染得到最终结构，最后把这个结构(内容)添加到挂载点的位置
 * vue渲染界面的过程：template => VDOM(虚拟dom) => html 
-
-
 
 ### 二、Vue指令
 
@@ -1574,6 +1749,22 @@ computed: {
 
 * 监听的数据是在 `data`中的，函数名要和 data 监听数据的名字一致
 * 它是主动去监听数据变化，不依赖返回值。
+* **它还可以监听`computed`上的计算属性的变化**
+
+```js
+{
+    computed(){
+        theme(){
+            return this.xxxx
+        }
+    },
+    watch:{
+        theme(){
+           // 响应theme计算属性一改变要触发的事情
+        }
+    }
+}
+```
 
 实例：在文本框输入字符，一秒后根据返回的数据进行渲染
 

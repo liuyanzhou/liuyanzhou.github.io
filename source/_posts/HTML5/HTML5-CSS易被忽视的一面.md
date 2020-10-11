@@ -717,3 +717,28 @@ text-overflow: ellipsis;
 }
 ```
 
+#### 十七、清除input:text标签样式
+
+```css
+input {
+      height: 80%;
+      width: 80%; 
+      margin: 5px 0 0 15px;
+      -webkit-appearance: none;
+      background: none;
+      color: #fff;
+      outline: none;
+      border: none;
+      font-size: 20px;
+  }
+```
+
+#### 十八、字体用网上下载好的字体
+
+* 下载网上字体引入方式
+
+```css
+@font-face{font-family:electronicFont;src:url(../font/DS-DIGIT.TTF)}
+```
+
+* 用Unicode图标，在下载好的index.html有介绍，如何引入.
