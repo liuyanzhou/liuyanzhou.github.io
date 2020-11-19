@@ -89,6 +89,39 @@ export default {
 
 组件通过`this.$children` 可以获取到自身上所有的子组件实例，是一个数组形式。而组件通过`this.$parent`可以获取到它挂载的父组件实例，获取到实例就可以获取到对应的组件实例对象上的属性和方法，从而进行通信
 
+当然，兄弟组件之间通信完全可以通过共同的祖辈搭建桥梁，例如这里的 `child2`传递信息给`child2`
+
+```html
+<!--父辈或祖辈在 child1 进行事件监听-->
+<script>
+	export default {
+        name:'child1',
+        created(){
+            this.$parant.$on('msg-from-child2',function(msg){
+                console.log('child2传递过来的值:',msg)
+            })
+        }
+    }
+</script>
+
+<!--父辈或祖辈在 child2 事件分发-->
+<template>
+	<button @click="sendMsg"> 点击触发 </button>
+</template>
+<script>
+	export default {
+        name:'child2',
+        methods:{
+           sendMsg() {
+               this.$parent.$emit('msg-from-child2','child1我来了')
+           } 
+        }
+    }
+</script>
+```
+
+> 注意：事件的**监听和分发**都是同一个组件来进行管理的，不能说监听挂载在一个组件上，分发又是另一个组件来触发。像这里的`$parent`（child1 与 child2 的共同父辈）就是事件的统一管理者。
+
 * `$attrs / $listeners`  （父子通信，跨级通信）
 
 实现跨级通信（传递数据）：Home组件包裹着 Hello组件 ，Hello组件包裹着 Word组件，想要Home组件的值传递给 Word组件
@@ -96,6 +129,8 @@ export default {
 1. 先在 Hello 组件上 以属性的方式进行数据绑定，由于属于非props属性，则会在Hello组件的根标签上显示，例如：`msg="kkb"`
 2. 在 Hello 组件内我们可以通过 `this.$attrs`进行上一步的数据获取，而我们要实现跨级数据传递，则需要使用`v-bind="$attrs"`将传过来的数据进行映射到 Word组件上，
 3. 在Word的内部同理我们可以通过`this.$attrs`进行数据获取
+
+注意：可以直接使用`v-bind="$attrs" 或 v-on="$listeners"`进行对传入非props的属性或方法进行展开到对应的组件身上
 
 ```html
 // Home.vue
@@ -308,6 +343,13 @@ export default {
     export default {
         name:'Word',
         inject:['val'],
+       // 或 自定义名字和设置默认参数
+        inject:{
+          val:{ // val可以直接定义名字
+              from:'val', // 来着哪里
+              default:'val11111' // 默认值
+          }  
+        },
         created() {
             console.log(this.val) // 访问
         }
@@ -319,11 +361,25 @@ export default {
 
 Home包裹着Hello，Hello包裹着Word以及Lyz组件。
 
-eventBus实际就是借助事件机制来进行通信，这里我们就直接使用Vue本身具有事件机制特点来实现**Word往Lyz组件数据传递**，当然这个方法不只是限制于兄弟组件必须在同一个组件上，也可以是父级兄弟组件与父级子组件进行通信，简而言之，只要出现在同一个视图就可以利用这套方法进行组件间的相互通信
+eventBus（事件总线）实际就是借助事件机制来进行通信，这里我们就直接使用Vue本身具有事件机制特点来实现**Word往Lyz组件数据传递**，当然这个方法不只是限制于兄弟组件必须在同一个组件上，也可以是父级兄弟组件与父级子组件进行通信，简而言之，只要出现在同一个视图就可以利用这套方法进行组件间的相互通信
 
 1. 在src目录下创建`eventBus.js`文件
-2. 在Word组件进行` eventBus.$emit(自定义事件名,传递的数据)`事件注册
-3. 在Lyz组件上进行` eventBus.$on(自定义事件名,回调函数) `事件监听
+
+```js
+/*
+* Vue
+*   事件
+*       $emit
+*       $on
+* */
+
+import Vue from 'vue';
+
+export default new Vue();
+```
+
+1. 在Word组件进行` eventBus.$emit(自定义事件名,传递的数据)`事件注册
+2. 在Lyz组件上进行` eventBus.$on(自定义事件名,回调函数) `事件监听
 
 ```html
 <!--Hmoe.vue-->
@@ -659,6 +715,8 @@ import {mapState} from 'vuex'
 // ....
 computed:{
     // 第一个参数 user 是模块名，第二个参数是获取user模块地下的数据 
+    ...mapState('user',['info'])
+    // 也可
     ...mapState('user',{
         user:state=>state.info
     })
@@ -1277,3 +1335,60 @@ Home.vue 相对应的改变
 2. action 函数的调用要借助于辅助函数`mapActions`进行映射到组件上的 methods节点上，之后我们就可以直接通过`this.xxx`直接调用
 3. state 的映射 通过`mapState()`，在上文有讲模块化开发时，如何进行映射。
 4. 其他改变我们可以直接从 vuedevTools工具上查看
+
+### 八、严格模式
+
+严格模式下，无论何时发生了状态变更且不是由`mutation`函数引擎的，将会抛出错误，这能保证所有的状态变更都能被调试工具跟踪到，开启严格模式`strict:true`
+
+```js
+const store = new Vuex.Stroe({
+    // ... 
+    strict:true
+})
+```
+
+### 九、插件
+
+Vuex 的 stroe 接受 `plugins`选项，这个选项暴露出每次`mutation`的钩子，`Vuex`插件就是一个函数，它接受store 作为唯一参数
+
+```js
+const myPlugin = store => {
+    // 当store 初始化后调用
+}
+```
+
+注册插件：
+
+```js
+// 导入插件文件
+import persist from './plugins/persist'
+const store = new vuex.Store({
+    // ... 
+    plugins:[persist]
+})
+```
+
+范例：实现登录状态持久化，stroe/plugins/persist.js
+
+```js
+export default store => {
+    // 初始化时从 localStorage 获取数据
+    if(localStorage) {
+        const user = JSON.parse(localStorage.getItem('user'))
+        if(user) {
+            store.commit('user/login')
+            store.commit('user/setUsername',user.username)
+        }
+    }
+    // 用户状态发生变化时缓存
+    // store.subscribe() 这个api 在每次commit提交mutation时会被触发
+    store.subscribe((mutation,state)=>{
+        if(mutation.type === 'user/login') {
+            localStorage.setItem('user',user)
+        }else if(mutation.type === 'user/logout') {
+            localStorage.removeItem('user')
+        }
+    })
+}
+```
+

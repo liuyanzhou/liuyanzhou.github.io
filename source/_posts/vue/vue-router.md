@@ -485,7 +485,7 @@ watch: {
 
 #### 7.1 组件内守卫
 
- 定义在组件内的与路由有关的生命周期函数（守卫）
+ 定义在组件内的与路由有关的生命周期函数（守卫），也就是与`data`节点同级
 
 * beforeRouteEnter
 
@@ -1241,6 +1241,34 @@ router.afterEach((to, from) => {
 })
 
 export default router;
+```
+
+### 十五、路由缓存
+
+利用`keep-alive`做组件缓存，保留组件状态，提高执行效率
+
+范例：缓存about 组件
+
+```html
+<keep-alive include="about">
+	<router-view></router-view>
+</keep-alive>
+```
+
+使用 `include` 或 `exclude`时要给组件设置`name`，因为它是与组件的name的值挂钩对应
+
+```html
+// about.vue 
+// .... template
+
+<script>
+	export default {
+        name:'about',
+        // ....
+    }
+</script>
+
+// ...css
 ```
 
 

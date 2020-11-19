@@ -206,9 +206,18 @@ Selenium是一个Web应用的自动化测试框架，可以创建回归测试来
 
 > webdirver是帮助**Selenium**打开浏览器的程序,请下载好你的浏览器对应的版本，并把`.exe`文件放到根目录上
 
+* chrom：http://chromedriver.storage.googleapis.com/index.html
+* firefox：https://github.com/mozilla/geckodriver/releases/
+* IE：http://selenium-release.storage.googleapis.com/index.html
+
 2.项目中安装**selenium-webdirver**包
 
 > npm i selenium-webdirver
+
+使用步骤：
+
+* 将第一步webdirver的`.exe`下载完，之后**双击该浏览器.exe**，将其运行起来
+* 书写node的代码
 
 官方dom：
 
@@ -231,11 +240,112 @@ const {Builder, By, Key, until} = require('selenium-webdriver');
 })();
 ```
 
-3.**官方api文档**
+**官方api文档**
 
 > https://www.selenium.dev/selenium/docs/api/javascript/module/selenium-webdriver/
 
-##### 4.3案例：拉勾网前端岗位数据获取并实现翻页数据获取
+##### 4.3 操作多子页面爬取数据
+
+当你要爬取的页面数据在主页点击之后，出现于新打开的页面，这时我们要将`dirver`的操作手柄切换到新的标签页上。
+
+在其中的常用的方法有
+
+| 方法                               | 描述                                                 |
+| ---------------------------------- | ---------------------------------------------------- |
+| driver.getWindowHandle()           | 获取到当前页的手柄（string）                         |
+| driver.getAllWindowHandles()       | 获取到浏览器所有打开的标签页手柄（Array）            |
+| driver.switchTo().window(`手柄Id`) | 切换页面操作手柄，手柄Id：指的是上面两个方法返回的值 |
+| element.getAttribute(`属性`)       | 获取定位元素身上的属性                               |
+
+> 注意：`selenium-webdirver`的所有操作都是异步的，通常我们都是用`async`与`await`来进行修饰
+
+例如实例中：我想要爬取的是`https://www.eljf.cn/shlj/`页面上点击后的垃圾咨询的详情页的数据。
+
+```js
+const fs = require('fs')
+const path = require('path')
+const download = require('download');
+const { Builder, By, Key, until } = require('selenium-webdriver');
+let currentPage = 1;
+let maxPage;
+
+let driver = new Builder().forBrowser('chrome').build();
+const fileRoot = path.join(__dirname, './file');
+
+(async function example() {
+    // 自动打开百度，并收索黑马程序员
+    await driver.get('https://www.eljf.cn/shlj/');
+    maxPage = await driver.findElement(By.css('.pageinfo strong:nth-of-type(1)')).getText()
+    getData()
+
+})();
+
+async function getData() {
+
+    console.log(`-----------正在获取第  ${currentPage}   页数据,总共   ${maxPage}   页------------`)
+        // 得到主页的句柄
+    let mainPage = await driver.getWindowHandle()
+
+    let liList = await driver.findElements(By.css('.list-container .list-ul li'))
+    for (let i = 0; i < 2; i++) {
+        console.log(`获取到第${currentPage}页数据的第${i+1}篇数据`)
+        try {
+
+            let searchingActicle = liList[i]
+            await searchingActicle.findElement(By.css('.soft-title')).click()
+
+            // 得到所有打开的子柄
+            let totalPage = await driver.getAllWindowHandles()
+                // 切换到新的窗口
+            await driver.switchTo().window(totalPage[1])
+
+            let title = await driver.findElement(By.css('.article-title')).getText()
+            let content = await driver.findElement(By.css('.article-content')).getText();
+            // console.log('fileRoot的值', path.join(fileRoot, '/', title.substr(0, 2)))
+            // 创建文件夹
+            let filePath = path.join(fileRoot, '/', title.substr(0, 2))
+            let posPath = path.join(filePath, '/', title.substr(0, 2)) + '.text'
+                // console.log(posPath)
+                // 写入文件
+            fs.mkdir(filePath, error => {
+
+                fs.writeFile(posPath, title + '\r\n\r\n\r\n\r\n' + content, error => {
+                    console.log(`第${currentPage}页数据的第${i+1}篇数据写入成功....`)
+                })
+            })
+
+            // 获取图片
+            let imgList = await driver.findElements(By.css('.article-content img'))
+            if (imgList.length > 0) {
+                let pageImageArr = []
+                for (let j = 0; j < imgList.length; j++) {
+                    let imgPath = await imgList[j].getAttribute('src')
+                    pageImageArr.push(imgPath)
+                }
+                // console.log('图片的路径数组值为:', pageImageArr)
+                // 下载图片
+                await Promise.all(pageImageArr.map(url => download(url, filePath))).then(() => {
+                    console.log('files downloaded!')
+                });
+            }
+            // 关闭爬取后的页
+            driver.close()
+                // 切回到主页面
+            await driver.switchTo().window(mainPage)
+        } catch (e) {
+            console.log(e)
+        }
+    }
+
+    currentPage++
+    if (currentPage <= 3) {
+        await driver.findElement(By.css('#page li:nth-last-of-type(3)')).click()
+        getData()
+    }
+}
+```
+
+##### 4.4案例：拉勾网前端岗位数据获取并实现翻页数据获取
 
 > 爬虫抓取数据地址:<https://www.lagou.com/> 
 

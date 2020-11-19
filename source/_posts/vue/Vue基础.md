@@ -77,11 +77,25 @@ new Vue({
 
 #### 1.2 render
 
-可以使用 render函数来替代template
+我们的神奇的模板语法是如何实现的？：在底层的实现上，Vue将模板编译成虚拟DOM渲染函数，结合响应系统，Vue能够智能地计算出最少需要重新渲染多个组件，并把DOM操作次数减到最少，我们可以通过`app.$options.render`打印出template 节点下被vue处理后的结果（虚拟DOM）
 
-type ： (createElement:()=>VNode) => VNode； 其实createElement 把vdom对象解析成html的一个函数 
+```js
+// 输出vue替我们生成的渲染函数一看究极
+console.log(app.$options.render)
+```
 
-它发挥了`JavaScript`强大的编程能力，它跳过了template阶段直接创建`VNode`（虚拟dom对象），优先级高于`el`和`template`，并且性能会更高
+它类似这个样子
+
+```js
+// 它长这个样子 
+(function anonymous( ) { with(this){return _c('div',{attrs:{"id":"app"}},[_c('h2',{attrs: {"title":title}},[_v("\n "+_s(title)+"\n ")]),_v(" "),_c('input',{directives:[{name:"model",rawName:"v-model",value: (course),expression:"course"}],attrs:{"type":"text"},domProps:{"value": (course)},on:{"keydown":function($event) {if(!$event.type.indexOf('key')&&_k($event.keyCode,"enter",13,$event.key,"Enter" ))return null;return addCourse($event)},"input":function($event) {if($event.target.composing)return;course=$event.target.value}}}),_v(" "),_c('button',{on:{"click":addCourse}},[_v("新增课程")]),_v(" "),(courses.length == 0)?_c('p',[_v("没有任何课程信息")]):_e(),_v(" "),_c('ul',_l((courses),function(c){return _c('li',{class:{active: (selectedCourse === c)},on:{"click":function($event){selectedCourse = c}}}, [_v(_s(c))])}),0)])} })
+```
+
+既然`template`模板最终还是要`render`函数进行处理转化为虚拟DOM节点，那么我们就可以直接使用render 函数来替代template
+
+render函数的处理结构（type ： (createElement:()=>VNode) => VNode；） 而createElement 是将我们写在`template`下的类似HTML结构转为`Vnode`（虚拟DOM）的方法
+
+它发挥了`JavaScript`强大的编程能力，它跳过了template编译阶段直接创建`VNode`（虚拟dom对象），优先级高于`el`和`template`，并且性能会更高
 
 > https://cn.vuejs.org/v2/guide/render-function.html
 
@@ -108,7 +122,7 @@ type ： (createElement:()=>VNode) => VNode； 其实createElement 把vdom对象
         new Vue({
             el: '#app',
             render(createElement) {
-                //  createElement 把vdom对象解析成html的一个函数 
+                //  createElement 产生Vnode
                 return createElement('div', {
                     attrs: {
                         id: 'app'
@@ -135,6 +149,7 @@ type：String| Element
 
 - 该选择只对 new 创建的实例有效
 - 如果提供了` el` ，但没有提供`template`，则，el 的内容将作为 template
+- 当这个组件挂载了，`el`就是该组件DOM对象
 
 #### 1.4 data(数据)
 
@@ -643,6 +658,104 @@ export default {
 
 * vue 帮助我们做的事情：把data与template进行结合，然后渲染得到最终结构，最后把这个结构(内容)添加到挂载点的位置
 * vue渲染界面的过程：template => VDOM(虚拟dom) => html 
+
+#### 1.10 VUE实例的声明周期
+
+每个Vue实例在被创建到被销毁 都要经过一系列的初始化过程---例如，需要设置数据监听、编译模板、将实例挂载到 DOM 并在数据变化时更新 DOM 等，称为Vue实例的[生命周期](https://cn.vuejs.org/v2/guide/instance.html#%E5%AE%9E%E4%BE%8B%E7%94%9F%E5%91%BD%E5%91%A8%E6%9C%9F%E9%92%A9%E5%AD%90)
+
+生命周期钩子：在Vue实例的生命周期过程中会运行一些叫生命周期钩子的函数，这给用户在不同阶段添加自己代码的机会
+
+范例：异步获取列表数据
+
+```js
+// 模拟异步数据调用接口
+function getCourses() { 
+    return new Promise(
+        resolve => {
+            setTimeout(() => { 
+                resolve(['web全栈', 'web高级']) 
+            }, 2000);
+        }) 
+}
+const app = new Vue({ // created钩子中调用接口 
+    async created() { 
+        const courses = await getCourses()
+        this.courses = courses 
+    }, 
+}
+```
+
+在由一道面试题开始浅讨生命周期
+
+```
+关于Vue的生命周期，下列哪项是不正确的？(B)[单选题] 
+A、Vue 实例从创建到销毁的过程，就是生命周期。
+B、页面首次加载会触发beforeCreate, created, beforeMount, mounted, beforeUpdate, updated。
+C、created表示完成数据观测，属性和方法的运算，初始化事件，$el属性还没有显示出来。
+D、DOM渲染在mounted中就已经完成了。
+
+// 因为 beforeUpdate update 生命钩子只会在数据变化时才会被触发
+```
+
+```html
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Vue源码剖析</title>
+    <script src="vue.js"></script>
+</head>
+
+<body>
+    <div id="demo">
+        <h1>声明周期</h1>
+        <p>{{foo}}</p>
+    </div>
+    <script>
+        // 创建实例
+        const app = new Vue({
+            el: '#demo',
+            data:{
+                foo: 'foo'
+            },
+            beforeCreate(){console.log('beforeCreate')}, // beforeCreate 
+            created(){console.log('created '+this.$el)}, // created undefined
+            beforeMount(){console.log('beforeMount')}, // beforeCreate [Object HTMLDivElement]
+            mounted(){
+                setTimeout(() => {
+                    this.foo = 'foooooo'
+                }, 2000);
+                console.log('mounted '+this.$el)},
+            beforeUpdate(){console.log('beforeUpdate')}, // beforeUpdate 
+            updated(){console.log('updated')}, // update 
+        });
+    </script>
+</body>
+</html>
+```
+
+结论：
+
+* 生命周期三个阶段：初始化、更新、销毁
+* 初始化：beforeCreate 、created 、beforeMount、mounted
+* 更新：beforeUpdate、updated
+* 销毁：beforeDestroy、destroyed
+
+使用场景：
+
+```js
+{
+    beforeCreate(){} // 执行时组件实例还未创建，通过用户插件开发中执行一些初始化任务
+    created(){} // 组件初始化完毕，各种数据可以使用，常用于异步数据获取
+    beforeMounted(){} // 未执行渲染、更新、dom未创建
+    mounted() {} // 初始化结束、dom已创建，可用于获取访问数据和dom元素
+    beforeUpdate(){} // 更新前，可用于获取更新前各种状态
+    updated(){} // 更新后，所有状态已是最新
+    beforeDestroy(){} // 销毁前，可用于一些定时器或订阅的取消
+    destroyed(){} // 组件已销毁，可用于一些定时器或订阅的取消
+}
+```
+
+
 
 ### 二、Vue指令
 
@@ -1224,8 +1337,6 @@ new Vue({
 * 指令的生命周期（钩子函数）
 
 指令的运行方式很简单，它提供了一些指令生命周期钩子函数，我们只需要在不同的生命周期钩子函数中进行逻辑处理就可以了
-
-
 
 | 钩子函数名       | 描述                                                         |
 | ---------------- | ------------------------------------------------------------ |
@@ -1886,6 +1997,12 @@ watch:{
 },
 ```
 
+#### 5.3 computed VS watch 小结
+
+* 处理数据的场景不同，监听器适合一个数据影响多个数据，计算属性适合一个数据受多个数据影响
+* 计算属性有缓存性，计算所得的值如果没有变化不会重复执行
+* 监听器选项提供了更通用的方法，适合执行异步操作或较大开销操作的情况
+
 ### 六、组件
 
 #### 6.1 组件概念
@@ -2143,7 +2260,7 @@ v-model 是 vue 提供的一个用于实现数据双绑的指令，用来简化`
 * `props`指定要绑定的属性，默认是`value`
 * `event`指定要绑定触发的事件，默认是 `input`事件
 
-实现修改父组件数据的流程：v-model与父组件数据进行绑定，并且子组件的model节点上配置了父组件传入进来的数据点，以及需要触发事件，我们只需要在子组件通过`this.$emit(model节点定义的触发事件，需要传到父组件的数据)`即可
+实现修改父组件数据的流程：v-model与父组件数据进行绑定，并且子组件的model节点上配置了父组件传入进来的数据点，以及需要触发事件，我们只需要在子组件通过`this.$emit(组件中的model节点定义的触发事件名，需要传到父组件的数据)`即可，这是因为我们在触发`model节点下定义的事件`，它会自动帮我们去修改父组件的值，即使父组件没有这个方法
 
 **而这种方式我们不推荐使用，因为它隐藏了太多细节，会让我们在使用这个组件的时候，不是太明了，当出现了问题也不太容易进行排错，并且它只能同时绑定一个值 ，这种需求我们更推荐使用 `.sync`修饰符**
 
@@ -2180,7 +2297,7 @@ v-model 是 vue 提供的一个用于实现数据双绑的指令，用来简化`
                 </li>
             </ul>
             <!-- 如果属性没有使用 v-bind，那么传入的值就只有字符串 -->
-            <k-pagination :pages="uPages" v-model="uPage" @changepage="changePage"></k-pagination>
+            <k-pagination :pages="uPages" v-model="uPage"></k-pagination>
         </div>
     </body>
     <script>
@@ -2605,18 +2722,18 @@ export default {
         Vue.component('k-pagination', {
             props: ['pages', 'page'], // 组件内部就可以通过this来直接访问proprs中的数据，类似data 中的数据一样
             template: `
-<div>
-<slot name="header"></slot>
-<a href="">上一页</a>
-<a 
-v-for="p in pages"
-:class="{'active':p===page}"   @click.prevent="goToPage(p)" >
-{{p}}
-        </a>
-<a href="">下一页</a>
+                <div>
+                    <slot name="header"></slot>
+                    <a href="">上一页</a>
+                    <a 
+                        v-for="p in pages"
+                        :class="{'active':p===page}"   @click.prevent="goToPage(p)" >
+                        {{p}}
+                    </a>
+                    <a href="">下一页</a>
 
-<slot name="footer" :pages="pages" :page="page"></slot>
-        </div>
+                    <slot name="footer" :pages="pages" :page="page"></slot>
+                 </div>
 `,
             methods: {
                 goToPage(p) {
@@ -2675,7 +2792,9 @@ v-for="p in pages"
 
 * 给插槽传入数据(使用作用域插槽)
 
-采用官方提供的`template`组件进行包裹，而且页面解析的时候，这个标签会被忽略解析。传参通过指令`v-slot`配置，例如`v-slot:footer="props" `: v-slot 指令，footer 插槽名(默认插槽名为default)，props 父组件传入插槽的所有值集合。
+采用官方提供的`template`组件进行包裹，而且页面解析的时候，这个标签会被忽略解析。传参通过指令`v-slot`配置，例如`v-slot:footer="props" `: v-slot 指令，footer 插槽名(默认插槽名为default)，props 组件传入插槽的所有值集合。
+
+> **再次强调：**props数据它是来着使用插槽的组件上，也就是下面例子的`k-pagination`组件，props会搜集`<slot>`组件除了`name`的所有属性
 
 流程：在组件的slot标签上定义要传入的数据，例如`<slot :n="1"></slot>`,之后在使用`template`组件上接收传入的参数即可
 
@@ -2739,19 +2858,19 @@ v-for="p in pages"
                 },
                 template: `
                 <div class="pagination">
-                <slot name="header"></slot>
-                <a href="" @click.prevent="prev">上一页</a>
-                <a
-                href=""
-                v-for="p of pages"
-                :class="{'active': p === page}"
-                @click.prevent="gotoPage(p)"
-                >
-                {{p}}
-                            </a>
-                <a href="">下一页</a>
-                <slot name="footer" :pages="pages" :page="page"></slot>
-                            </div>
+                    <slot name="header"></slot>
+                    <a href="" @click.prevent="prev">上一页</a>
+                    <a
+                        href=""
+                        v-for="p of pages"
+                        :class="{'active': p === page}"
+                        @click.prevent="gotoPage(p)"
+                    >
+                    {{p}}
+                   </a>
+                    <a href="">下一页</a>
+                    <slot name="footer" :pages="pages" :page="page"></slot>
+                </div>
 `,
                 methods: {
                     gotoPage(p) {
@@ -2883,6 +3002,62 @@ Vue.component('my-component', {
 
 </html>
 ```
+
+#### 6.9 函数式组件
+
+组件没有管理任何状态，也没有监听如何传递给它的状态（不watch外界属性），也没有生命周期方法时，可以将组件标记为`functional`，这意味着它无状态（没有响应式数据）也没有实例（没有`this`上下文)
+
+```js
+Vue.component('heading',{
+    functional:true, // 标记函数式组件
+    props:['level','title','icon'], 
+    render(h,context) { // 上下嗯传参
+        let children = []
+        // 属性获取
+        const {icon,title,level} = context.props
+        if(icon) {
+            children.push(h(
+                'svg',
+                {class:'icon'},
+                [h('use',attrs:['xlink:href':'#icon-'+icon])]))
+            // 子元素获取
+            children = children.concat(context.children)
+        }
+        vnode= h(
+            'h'+level,
+            {attr:{title}},
+            children
+                )
+        console.log(vnode)
+        return vnode
+    }
+})
+```
+
+#### 6.10 组件的理解
+
+vue组件化的理解：组件是Vue的精髓，Vue应用就是由一个个组件构成的。Vue的组件化涉及到的内容非常多，当面试时被问到：谈一下你对vue组件化的理解，这时候有可能无从下手，可以从以下几点进行阐述
+
+**定义**:组件是 可复用 的Vue实例，准确讲它们是`VueComponent`的实例，继承自`Vue`
+
+**优点**：组件可以添加代码的`复用性、可维护性、可测试性`
+
+**使用场景**：什么时候使用组件？以下分类可作为参考
+
+* 通用组件：实现最基本的功能，具有通用性，复用性，例如按钮组件、输入框组件、布局组件等
+* 业务组件：它们完成具体业务，具有一定的复用性，例如登录组件、轮播图组件。
+* 页面组件：组织应用各部分独立内容，需要时在不同页面间切换。例如：列表页、详情页组件
+
+**如何使用组件**
+
+* 定义：Vue.component()、components选项，sfc
+* 分类：有状态组件（需要依赖data、props），functional（无状态组件，不需要data），abstract(抽象型组件，例如`transition`)
+* 通信：props、emit() /  on() 、provide / inject 、 children / parent/ root / listeners
+* 使用及优化：is、keep-alive 、异步组件
+
+**组件本质**
+
+vue中的组件经历如下过程：组件配置 -> VueComponent 实例   -> render() -> virtual Dom -> Dom ,所以组件的本质是产生虚拟DOM
 
 ### 七、Vue-cli与单文件组件
 
@@ -3033,6 +3208,8 @@ export default {
 
 如果我们希望获取组件的节点，进行 DOM 相关操作，可以通过`ref`和`$refs`来完成
 
+如果在普通的DOM元素上使用，引用指向的就是DOM元素；如果用在子组件上，引用就指向组件
+
 * ref：给元素或组件添加`ref`属性，则该元素或组件实例对象将被添加到当前组件实例对象的`$refs`属性下面
 * $refs ： 该属性是一个对象，存储了通过 `ref`绑定的元素对象或组件的实例对象
 
@@ -3096,6 +3273,12 @@ export default {
     }
 </style>
 ```
+
+注意：
+
+> * ref 是作为渲染结果被创建的，在初始渲染时不能访问它们
+> * $refs 不是响应式的，不要试图用它在模板中做数据绑定
+> * 当`v-for`用来元素或组件时，引用信息将是包含DOM节点或组件实例的数组
 
 ### 十、nextTick
 
@@ -3213,7 +3396,86 @@ component 是 vue 内置的一个组件，它他提供了一个 `is`属性用来
 
 ### 十一、插件
 
-它使用`app.use()`进行注册，第一个参数默认传入的是vue实例对象，大体去官网查看
+Vue.js 的插件应该暴露一个`install`方法，这个方法的第一个参数是`vue`构造器，第二个可选的选项对象：
+
+```js
+MyPlugin.install = function(Vue,options) {
+    // 1.添加全局方法或属性
+    Vue.myGlobalMethod = function(){}
+    // 2.添加全局资源
+    Vue.directive('my-directive',{})
+    // 3.注入组件选项
+    Vue.mixin({
+        created:function(){
+            // 逻辑...
+        }
+    })
+    // 4.添加实例方法
+    Vue.prototype.$myMethod = function(methodOptions){}
+}
+```
+
+范例：修改heading组件为插件
+
+```js
+// 插件需要实现install
+const MyPlugin = {
+  install(Vue, options) {
+    // heading组件
+    // <heading :level="1" :title="title" icon="cart">{{title}}</heading>
+    // <h2 title=""></h2>
+    Vue.component('heading', {
+      props: {
+        level: {
+          type: String,
+          required: true
+        },
+        title: {
+          type: String,
+          default: ''
+        },
+        icon: {
+          type: String
+        }
+      },
+      render(h) {
+        // 子节点数组
+        let children = []
+
+        // icon属性处理逻辑
+        if (this.icon) {
+          // <svg class="icon"><use xlink:href="#icon-cart"/></svg>
+          children.push(h(
+            'svg',
+            { class: 'icon' },
+            [h('use', { attrs: { 'xlink:href': '#icon-' + this.icon } })]
+          ))
+
+        }
+
+        // 拼接子节点
+        children = children.concat(this.$slots.default)
+
+        const vnode = h(
+          'h' + this.level, // 参数1：tagname
+          { attrs: { title: this.title } }, // 参数2：{。。。}
+          children // 参数3：子节点VNode数组
+        )
+        console.log(vnode);
+        // 返回createElement返回的VNode
+        return vnode
+      }
+    })
+  }
+}
+
+if (typeof window !== 'undefined' && window.Vue) {
+  // 使用插件使用Vue.use()
+  window.Vue.use(MyPlugin)
+}
+```
+
+**之后直接引入界面即可使用插件提供的一些组件或方法**
 
 ### 十二、动画
 
@@ -3232,7 +3494,7 @@ component 是 vue 内置的一个组件，它他提供了一个 `is`属性用来
 
 #### 12.2 transition 组件
 
-通过`transition`组件包裹的元素或组件，会在上面定义的几个场景中触发过渡，并添加指定的css样式，如果要使用vue提供的动画生命周期函数，那么一定要 让元素或组件给`transtion`组件进行包裹
+通过`transition`组件包裹的元素或组件，会在上面定义的几个场景中触发过渡，组件会自动给包裹的根DOM元素添加指定的class类名，如果要使用vue提供的动画生命周期函数，那么一定要 让元素或组件给`transtion`组件进行包裹
 
 #### 12.3 过渡名
 
@@ -3246,7 +3508,7 @@ component 是 vue 内置的一个组件，它他提供了一个 `is`属性用来
 | -------------- | ------------------------------------------------------------ |
 | v-enter        | 定义进入过渡的开始状态。在元素被插入之前生效，在元素被插入之后的下一帧移除 |
 | v-enter-active | 调用进入过渡生效时的状态，在整个进入过渡的阶段中应用，在元素被插入之前生效，在过渡(动画)完成之后移除。这个类可以被用来定义进入过渡的过程时间，延迟和曲线函数 |
-| v-enter-to     | 2.1.8版本以上定义进入过渡的结束状态。在元素被插入之后下一帧生效（与此同时`v-enter`被移除），自身在过渡完成之后移除 |
+| v-enter-to     | 2.1.8版本以上定义进入过渡的结束状态。在元素被插入之后下一帧生效（与此同时`v-enter`被移除），自身在过渡完成之后移除，（可理解为在组件**进入**页面之后的动画最后一帧移除） |
 
 **离开动画过渡名**
 
@@ -3254,7 +3516,7 @@ component 是 vue 内置的一个组件，它他提供了一个 `is`属性用来
 | -------------- | ------------------------------------------------------------ |
 | v-leave        | 定义离开过渡的开始状态。在离开过渡被触发时立即生效，下一帧被移除 |
 | v-leave-active | 定义离开过渡生效时的状态，在整个离开过渡的过程中应用，在离开过渡被触发时立即生效，在过渡(动画)完成之后移除。这个类可以被用来定义离开过渡的时间，延迟和曲线函数 |
-| v-leave-to     | 2.1.8版本及以上，定义离开过渡的结束状态。在离开过渡触发之后下一帧生效(与此同时`v-leave`被删除)，自身在过渡(动画)完成之后移除 |
+| v-leave-to     | 2.1.8版本及以上，定义离开过渡的结束状态。在离开过渡触发之后下一帧生效(与此同时`v-leave`被删除)，自身在过渡(动画)完成之后移除，可理解为在组件**离开**页面之后的动画最后一帧移除） |
 
 ![动画](/medias/imges/vue/basic/transition.png) 
 
@@ -3312,6 +3574,239 @@ component 是 vue 内置的一个组件，它他提供了一个 `is`属性用来
 </style>
 
 ```
+
+#### 12.4 结合css动画库
+
+通过自定义过渡类名可以有效结合`Animate.css`这类动画库制作更精美的动画效果
+
+引入animate.css
+
+```html
+<link href="https://cdn.jsdelivr.net/npm/animate.css@3.5.1" rel="stylesheet" type="text/css">
+```
+
+transition设置
+
+```html
+<transition enter-active-class="animated bounceIn" leave-active-class="animated bounceOut">
+```
+
+#### 12.5 JavaScipt 钩子
+
+可以在`<transition>`属性中声明 JavaScrpt钩子，使用js实现动画
+
+```html
+<transition
+ v-on:before-enter="beforEnter" // 动画开始前，设置初始状态
+ v-on:enter="enter" // 执行动画
+ v-on:after-enter="afterEnter" // 动画结束，清理工作
+ v-on:enter-cancelled="enterCancelled" // 取消动画
+ v-on:before-leave="beforeLeave" // 动画离场前，设置初始状态
+ v-on:leave="leave"
+ v-on:after-leave="afterLeave"
+ v-on:leave-cancelled="leaveCancelled"
+>
+</transition>
+```
+
+范例：用JS实现消息动画
+
+```js
+Vue.component('message',{
+    template:`
+		<transition @before-enter="beforeEnter" @enter="enter">...</transition>
+`,
+    methods:{
+        beforeEnter(el) {
+            el.style.opacity=0 // 设置初始状态
+        },
+        enter(el,done) {
+            document.body.offsetHeight // 触发回流激活动画
+            el.style.opacity = 1 // 设置结束状态
+        }
+    }
+})
+```
+
+**纯JS方案**
+
+引入外包：
+
+```html
+<script src="https://cdnjs.cloudflare.com/ajax/libs/velocity/1.2.3/velocity.min.js"> </script>
+```
+
+```js
+Vue.component('message',{
+    template:`
+		<transition 
+		@before-enter="beforeEnter"
+		@enter="enter"
+		@before-leave="beforeLeave"
+		@leave="leave"
+		></transition>
+`,
+    methods:{
+        beforeEnter(el) {
+            el.style.opacity=0
+        },
+        enter(el,done) {
+            Velocity(el,{opacity:1},{duration:500,complete:done})
+        },
+        beforeLeave(el) {
+            el.style.opacity=1
+        },
+        leave(el,done) {
+            Velocity(el,{opacity:0},{duration:500,complete:done})
+        }
+    }
+})
+```
+
+#### 12.6 列表过渡
+
+利用`transiton-group` 可以对v-for渲染的每个元素应用过渡，相当于它给每一个循环元素添加了`transition`组件
+
+范例：给列表添加增加过渡
+
+```html 
+<transition-group>
+	<div v-for="c in courses" :key="c.name">
+        {{c.name}} - ￥{{c.price}}
+        <button @click="addToCart(c)"></button>
+    </div>
+</transition-group>
+```
+
+
+
+### 十三、必会API盘点
+
+#### 13.1 数据相关API
+
+**Vue.set**
+
+向响应式对象中添加一个属性，并确保这个新属性是响应式的，且触发视图更新
+
+使用方法：`Vue.set(target,propertyName/index,value)`
+
+范例：批量设置商品价格
+
+```html
+<template>
+    <!--添加批量价格更新-->
+    <p>
+        <input v-model.number="price" />
+        <button @click="batchUpdate">批量更新价格</button>
+    </p>
+
+    <div class="course-list" v-else>
+        <div v-for="course-list" :key="c.name">
+            <!--添加批量价格更新-->
+            {{c.name}} - ￥{{c.price}}
+        </div>
+    </div>
+</template>
+
+<script>
+    function getCourses(){
+        return new Promise(resolve=>{
+            setTimeout(()=>{
+                resolve({name:'web全栈'},{name:'web高级'})
+            },2000)
+        })
+    }
+
+    const app = new Vue({
+        data(){
+            return {
+                price:0 // 增加价格数据
+            }
+        },
+        async created() {
+            const courses = await getCourses()
+            this.courses = courses
+        },
+        methods:{
+            // 添加批量价格更新方法
+            batchUpdate() {
+                this.course.forEach(c=>{
+                    c.price = this.price // no ok
+                    Vue.set(c,'price',this.price) // ok
+                })
+            }
+        }
+    })
+</script>
+```
+
+**Vue.delete**
+
+删除对象的属性，如果对象是响应式的，确保删除能删除视图。
+
+使用方法：`Vue.delete(target,property/index)`
+
+#### 13.2 事件相关API
+
+**vm.$on**
+
+监听当前实例上的自定义事件。事件可以由`vm.$emit`触发，回调函数会接收所有传入事件触发函数的额外参数
+
+```js
+vm.$on('test',function(msg){
+    console.log(msg)
+})
+```
+
+**vm.$emit**
+
+触发当前实例上的事件，附加参数都会传给监听器回调
+
+```js
+vm.$emit('test','hi')
+```
+
+典型应用：事件总线
+
+通过在Vue原型上添加一个Vue实例作为事件总线，实现组件间相互通信，而且不受组件间关系的影响
+
+```js
+vm.prototype.$bus = new Vue();
+```
+
+> 这样做可以在任意组件中使用`this.$bus`访问到该Vue实例
+
+注意：组件事件的派发者也就事件的监听者。通过`this.$bus`我们可以进行跨级别组件通信，但前提他们需要在同一个页面组价中
+
+**vm.$once**
+
+监听一个自定义事件，但是只触发一次，一旦触发之后，监听就会被移除
+
+```js
+vm.$once('test',function(msg){
+    console.log(msg)
+})
+```
+
+**vm.$off**
+
+移除自定义事件监听器
+
+* 如果没有提供参数，则移除所有的事件监听器
+* 如果只提供了事件，则移除该事件所有的监听器
+* 如果同时提供了事件与回调，则只移除这个回调的监听器
+
+``` js
+vm.$off() // 移除所有事件监听器
+vm.$off('test') // 移除该事件所有的监听器
+vm.$off('test',callback) // 只移除这个回调的监听器
+```
+
+#### 13.3 组件或元素引用
+
+**ref和vm.$refs**
+
+详细看上方阐述
 
 ### 扩展
 
