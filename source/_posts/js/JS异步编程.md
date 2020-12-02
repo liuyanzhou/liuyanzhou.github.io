@@ -524,6 +524,8 @@ Promise.then方法中的返回给的promise有三种状态
 * then中返还非promise对象；默认返还 resolved状态 promise对象并将返回的东西传入到一个then中，也就是说 若没有对上一个promise返回状态进行特殊指定 （是`resolved | rejected`）的话，那么返回的状态都是`resolved`并走下一个promise的`then`中的`resolved`的回调。若指定了，则为指定的状态返回。
 * then中直接return promise对象，该promise对象是什么状态就是什么状态 
 
+> 记住：当上一个promise 抛出错误而`throw  new Error()` | 返回的promise是rejected 状态的 走该promise 的then中失败的方法，其他都是走 成功的方法
+
 ```js
 let p1 = new Promise((resolve, reject) => {
     reject('1')
@@ -703,6 +705,35 @@ catch (rejectedHandler) {
 
 </html>
 ```
+
+面试题
+
+```js
+async function async1() {
+    console.log('async1 start')
+    await async2(); // Promise.resolve().then(()=>console.log("async end"))
+    console.log("async1 end")
+}
+async function async2() {
+    console.log('async2')
+}
+console.log('script start')
+setTimeout(function() {
+    console.log('setTimeout1')
+}, 0)
+async1()
+new Promise(function(resolve) {
+    console.log('promise1')
+    resolve()
+}).then(function() {
+    console.log('promise2')
+})
+console.log('script end')
+// 浏览器
+// script start 、 async1 start、async2、promise1、script end、async1 end、promise2、setTimeout1
+```
+
+> 这里主要将await后面的代码(不包括await当前行那条，例如不包含`async2()`调用)当做一个微任务即可
 
 ### 三、Generator
 
