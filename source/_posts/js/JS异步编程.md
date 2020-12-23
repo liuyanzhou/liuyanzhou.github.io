@@ -804,6 +804,83 @@ function co(generator) {
 co(main)
 ```
 
+generator源码结构：
+
+```js
+"use strict";
+class Context {
+    constructor() {
+        this.next = 0;
+        this.done = false;
+    }
+    stop() {
+        this.done = true;
+    }
+}
+
+let regeneratorRuntime = {
+    mark(genFunc) {
+        return genFunc; // 最外层的 generator 函数
+    },
+    wrap(innerFn) {
+        let it = {}
+        let context = new Context();
+        it.next = function(v) {
+            context.sent = v;
+            let value = innerFn(context);
+            return {
+                value,
+                done: context.done
+            }
+        }
+        return it;
+    }
+}
+
+var _marked = regeneratorRuntime.mark(read); // read就是刚才写的generator
+function read() {
+    var a, b, c;
+    return regeneratorRuntime.wrap(function read$(_context) {
+        while (1) { // 表示此方法 不止走一次, while(1) 表示这是一个状态机
+            switch (_context.prev = _context.next) {
+                case 0:
+                    _context.next = 2;
+                    return 1;
+
+                case 2:
+                    a = _context.sent;
+                    console.log(a);
+                    _context.next = 6;
+                    return 2;
+
+                case 6:
+                    b = _context.sent;
+                    console.log(b);
+                    _context.next = 10;
+                    return 3;
+
+                case 10:
+                    c = _context.sent;
+                    console.log(c);
+
+                case 12:
+                case "end":
+                    return _context.stop();
+            }
+        }
+    }, _marked);
+}
+
+let it = read()
+
+console.log(it.next())
+console.log(it.next('a'))
+console.log(it.next('b'))
+console.log(it.next('c'))
+```
+
+> 输出：{ value: 1, done: false } a { value: 2, done: false } b { value: 3, done: false } c { value: undefined, done: true }
+
 ### 四、Async
 
 真正意义上实现promise扁平化编程，他可以算是 Generator 的一个语法糖，现阶段`await`关键字只能出现在`async`函数下,否则报错，await 并不会阻塞外部代码的执行，但会阻止和它同一作用域的代码执行，可以借助`Generator中的yield关键字执行顺序理解`，它只是让我们更加扁平化获取到异步返回的结果数据,async函数也是会返回一个`Promise`对象，在外界可以用`then()`接收返回数据，用`catch()`接收返回的错误
@@ -944,3 +1021,83 @@ console.log('heheheh')
 // 4444 
 ```
 
+async + await 源码分析
+
+```js
+"use strict";
+
+function asyncGeneratorStep(gen, resolve, reject, _next, _throw, key, arg) {
+    try {
+        var info = gen[key](arg); // it.next(value)
+        var value = info.value; // 得到返回值
+    } catch (error) {
+        reject(error);
+        return;
+    }
+    if (info.done) {
+        resolve(value);
+    } else {
+        Promise.resolve(value).then(_next, _throw);
+    }
+}
+
+function _asyncToGenerator(fn) {
+    return function() {
+        var self = this,
+            args = arguments;
+        return new Promise(function(resolve, reject) {
+            var gen = fn.apply(self, args);
+
+            function _next(value) {
+                asyncGeneratorStep(gen, resolve, reject, _next, _throw, "next", value);
+            }
+
+            function _throw(err) {
+                asyncGeneratorStep(gen, resolve, reject, _next, _throw, "throw", err);
+            }
+            _next(undefined);
+        });
+    };
+}
+
+function readAge(_x) {
+    return _readAge.apply(this, arguments); // 返回了一个迭代器 it
+} // async 函数执行完毕后返回的就是一个promoise
+
+// async + await=> generator + co 语法糖 
+
+function _readAge() {
+    _readAge = _asyncToGenerator( /*#__PURE__*/ regeneratorRuntime.mark(function _callee(filePath) {
+        var name, age;
+        return regeneratorRuntime.wrap(function _callee$(_context) {
+            while (1) {
+                switch (_context.prev = _context.next) {
+                    case 0:
+                        _context.next = 2;
+                        return fs.readFile(filePath, 'utf8');
+
+                    case 2:
+                        name = _context.sent;
+                        _context.next = 5;
+                        return fs.readFile(name, 'utf8');
+
+                    case 5:
+                        age = _context.sent;
+                        return _context.abrupt("return", age);
+
+                    case 7:
+                    case "end":
+                        return _context.stop();
+                }
+            }
+        }, _callee);
+    }));
+    return _readAge.apply(this, arguments);
+}
+
+readAge('./name.txt').then(function(data) {
+    console.log(data);
+});
+```
+
+> 可看出async + await => generator + co，内部都是 switch + case

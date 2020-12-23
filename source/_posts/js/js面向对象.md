@@ -137,18 +137,18 @@ Star.prototype.sing = function() {
     console.log('我会唱歌');
 }
 console.log(Star.prototype)
-var ldh = new Star('刘德华', 18);
-var zxy = new Star('张学友', 19);
-console.log(ldh.sing === zxy.sing); // true 证明了实例化多个对象时，都是复用一个函数
-ldh.sing();
-zxy.sing();
+var star1 = new Star('star1', 18);
+var star2 = new Star('star2', 19);
+console.log(star1.sing === star2.sing); // true 证明了实例化多个对象时，都是复用一个函数
+star1.sing();
+star2.sing();
 ```
 
 ### 3.2对象原型[__proto__]
 
-> 对象都会有一个属性 __proto__ 指向构造函数的 prototype 原型对象，之所以我们对象可以使用构造函数 prototype 原型对象的属性和方法，就是因为对象有 __proto__ 原型的存在。
-> __proto__对象原型和原型对象 prototype 是等价的
-> __proto__对象原型的意义就在于为对象的查找机制提供一个方向，或者说一条路线，但是它是一个非标准属性，因此实际开发中，不可以使用这个属性，它只是内部指向原型对象 prototype。
+> 对象都会有一个属性 `__proto__ `指向构造函数的 prototype 原型对象，之所以我们对象可以使用构造函数 prototype 原型对象的属性和方法，就是因为有 `__proto__ `属性，它会构成一条原型链。
+> `__proto__`对象原型和原型对象 prototype 是等价的，因为它们是引用数据类型。
+> `__proto__`对象原型的意义就在于为对象的查找机制提供一个方向，或者说一条路线，但是它是一个非标准属性，因此实际开发中，不可以使用这个属性，它只是内部指向原型对象 prototype。
 
 **构造函数&实例对象&原型三者的关系**
 
@@ -160,11 +160,11 @@ function Star(uname, age) {
 Star.prototype.sing = function() {
     console.log('我会唱歌');
 }
-var ldh = new Star('刘德华', 18);
-var zxy = new Star('张学友', 19);
-ldh.sing();
-console.log(ldh); // 对象身上系统自己添加一个 __proto__ 指向我们构造函数的原型对象 prototype
-console.log(ldh.__proto__ === Star.prototype); // true
+var star1 = new Star('star1', 18);
+var star2 = new Star('star2', 19);
+star1.sing();
+console.log(star1); // 对象身上的 __proto__ 属性指向我们构造函数的原型对象 prototype
+console.log(star1.__proto__ === Star.prototype); // true
 ```
 
 > 方法的查找规则: 首先先看ldh 对象身上是否有 sing 方法,如果有就执行这个对象上的sing
@@ -354,6 +354,68 @@ console.log(father)
 
 > 由两图分析可知，这种方法确实实现了修改子原型对象并不污染到父原型对象
 
+### 4.4 使用原型对象+call继承
+
+> 我们可以利用call与原型对象来实现继承父类的实例属性与方法和原型属性与方法
+
+* call + prototype 
+
+```js
+function Animal(name) {
+    this.name = name;
+    this.eat = '吃肉';
+}
+Animal.prototype.address = { location: '山里' }
+
+function Tiger(name) {
+    this.name = name;
+    this.age = 10;
+    Animal.call(this); // 继承实例方法
+}
+Tiger.prototype.__proto__ = Animal.prototype; // 继承原型上方法
+let tiger = new Tiger();
+console.log(tiger.eat) // 吃肉
+console.log(tiger.address) // { location: '山里' }
+console.log(tiger.constructor) // Tiger
+```
+
+* call + Object.create()
+
+```js
+function Animal(name) {
+    this.name = name;
+    this.eat = '吃肉';
+}
+Animal.prototype.address = { location: '山里' }
+
+function Tiger(name) {
+    this.name = name;
+    this.age = 10;
+    Animal.call(this)
+}
+Tiger.prototype = Object.create(Animal.prototype)
+let tiger = new Tiger();
+console.log(tiger.eat); // 吃肉
+console.log(tiger.address); // { location: '山里' } 
+console.log(tiger.constructor) // [Function: Animal]
+```
+
+> Object.create会我们原型对象的`constructor`属性指向，一般我们调用之后都会手动改回`constructor`属性的指向
+>
+> `Tiger.prototype.constructor = Tiger`
+
+我们手动实现 `Object.create()方法`，并完成 constructor 回指问题
+
+```js
+function create(parentPrototype) {
+    let Fn = function() {}
+    Fn.prototype = parentPrototype; // 当前函数的原型 只有父类的原型
+    let fn = new Fn();
+    fn.constructor = Tiger;
+    return fn // 当实例可以拿到 animal.prototype
+}
+```
+
 ## 五、ES6类
 
 > 在 ES6 中新增加了类的概念，可以使用 class 关键字声明一个类，之后以这个类来实例化对象 
@@ -451,6 +513,34 @@ class Son extends Father{  // 这样子类就继承了父类的属性和方法
 var damao= new Son('刘');
 damao.say();      //结果为 你的姓是刘
 ```
+
+> `extends`关键字让子类继承了父类的 实例属性方法、原型属性方法、父类的静态属性与方法
+
+```js
+class Animal {
+    static flag() {
+            return 123
+        } // es7 支持静态属性 es6 值支持静态方法
+    constructor(name) {
+        this.name = name;
+        this.eat = '吃肉'
+    }
+    say() { // 原型上的方法 
+        console.log(this); // es6 规范里 如果单独调用原型上的方法 this是不存在的
+    }
+}
+class Tiger extends Animal { // 实例+原型
+    constructor(name) {
+        super(name); // super 相当于 Animal.call(this)
+    }
+}
+
+let tiger = new Tiger('王老虎');
+console.log(tiger.name); // 王老虎
+console.log(Tiger.flag()); // 静态方法可以被继承 123
+```
+
+
 
 #### 5.3.2继承的super使用
 
@@ -592,6 +682,25 @@ console.log(_that === ldh); // true
 *  在 ES6 中类没有变量提升，所以必须先定义类，才能通过类实例化对象.
 * 类里面的共有属性和方法一定要加this使用 
 * 类里面的this指向问题. 【constructor 里面的this指向实例对象, 方法里面的this 指向这个方法的调用者 】
+* **在es6 规范里 如果单独调用原型上的方法 this是不存在的**
+
+```js
+class Animal {
+    static flag() {
+            return 123
+        } // es7 支持静态属性 es6 值支持静态方法
+    constructor(name) {
+        this.name = name;
+        this.eat = '吃肉'
+    }
+    say() { // 原型上的方法 
+        console.log(this); // es6 规范里 如果单独调用原型上的方法 this是不存在的
+    }
+} 
+let animal = new Animal();
+let say = animal.say
+say(); // undefined
+```
 
 ### 5.4类的方法分类
 

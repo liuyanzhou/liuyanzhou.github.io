@@ -769,3 +769,42 @@ console.log(p.name);    // 4. 这个输出什么 -> 张学友
 ```
 
 ![复杂数据类型传参](/medias/imges/js/neiObj/img4.png)
+
+## 九、数据类型的判断
+
+区分数组和对象的三种方法：`constructor`、`instanceof`、`Object.prototype.toString.call()`
+
+* constructor 通过的是构造函数来实现判断
+* A instanceof B 通过查找A的原型链有没有B
+* Object.prototype.toString.call()  返回的是 `[object Type]`的形式。
+
+> 在 JavaScript 里使用 typeof 判断类型，只能区分基本类型，即：number，string，undefined，boolean，object。不包括null，`typeof null == object`
+>
+> 对于null、array、function、object来说，使用`typeof`都会统一返回`object`字符串。要想区分对象、数组、函数、单纯使用`typeof `是不行的。在`JS`中，可以通过`Object.prototype.toString.call()`方法，判断某个对象属于哪种类型，分为`null`、`string`、`boolean`、`number`、`undefined`、`array`、`function`、`object`、`date`、`math`
+
+通过变量 `arr`、`obj`来区分
+
+```js
+let arr =[];
+let obj = [];
+
+// ---------------------constructor---------------------------------
+arr.constructor // ƒ Array() { [native code] }
+obj.constructor // ƒ Object() { [native code] }
+
+// ----------------------instanceof----------------------------------
+arr instanceof Array // true 
+obj instanceof Object // true
+
+// -------------------Object.prototype.toString.call()------------------
+Object.prototype.toString.call(arr) // [object Array]
+Object.prototype.toString.call(obj) // [object Object]
+Object.prototype.toString.call(123) // [object Number]
+Object.prototype.toString.call("123") // [object String]
+Object.prototype.toString.call(new Date) // [object Date]
+Object.prototype.toString.call(null) // [object Null]
+// ....
+```
+
+
+

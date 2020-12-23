@@ -365,17 +365,191 @@ let ws = fs.createWriteStream('88.txt')
 res65.pipe(ws)
 ```
 
+#### 3.2fs模块扩展
 
+| 方法                     | 描述                                                         |
+| ------------------------ | ------------------------------------------------------------ |
+| fs.mkdir(dir,callback)   | 创建文件目录                                                 |
+| fs.readdir(dir,callback) | 获取目录文件\|文件夹名，callback参数为`(err,dirs)`,err为错误信息，dirs为该目录下的所有文件\|文件夹名 |
+| fs.rmdir(dir,callback)   | 删除文件目录，注意**node默认删除的目录一定是个空目录**       |
+| fs.unlink(dir,callback)  | 删除文件                                                     |
+| fs.stat(dir,callback)    | 得到文件信息，callback内的参数为`(err,statObj)`,err为错误信息，statObj为描述文件信息对象，statObj可调用`statObj.isFile()`判断是否为文件，`statObj.isDirectory()`判断是否为目录 |
 
-### 3.2 path路径模块
+递归删除具有内容的文件目录
+
+* 异步串行，深度优先
+
+```js
+const fs = require('fs'); // libuv 提供的非阻塞的i/o方法
+const path = require('path')
+
+function rmdir(dir, callback) {
+    fs.stat(dir, (err, statObj) => {
+        if (statObj.isFile()) {
+            fs.unlink(dir, callback); // 如果是文件直接删除即可
+        } else {
+            // 获取文件夹名
+            fs.readdir(dir, (err, dirs) => {
+                dirs = dirs.map(d => path.join(dir, d));
+                let index = 0;
+
+                function next() {
+                    if (index == dirs.length) return fs.rmdir(dir, callback);
+                    let current = dirs[index++];
+                    rmdir(current, next);
+                }
+                next()
+            })
+        }
+    })
+}
+
+rmdir('public', () => {
+    console.log('删除成功')
+})
+```
+
+* 异步串行，广度优先
+
+```js
+function myRmdir(dir, cb) {
+    let stack = [dir]
+
+    function reverseRemove() {
+        let idx = stack.length - 1;
+
+        function next() {
+            if (idx < 0) return cb()
+            let cur = stack[idx--];
+            fs.rmdir(cur, next);
+        }
+        next()
+    }
+    
+    fs.stat(dir, (err, statObj) => {
+        if (statObj.isFile()) {
+            fs.unlink(dir, cb); // 如果是文件删除即可 
+        } else {
+            // 如果是目录 采用广度遍历的方式 采用异步的方式读取目录 维护想要的结果 最终将结果倒叙删除
+            let idx = 0;
+
+            function next() {
+                let dir = stack[idx++];
+                if (!dir) return reverseRemove()
+                fs.readdir(dir, (err, dirs) => {
+                    dirs = dirs.map(d => path.join(dir, d));
+                    stack.push(...dirs);
+                    next()
+                })
+            }
+            next()
+        }
+    })
+}
+myRmdir('public', () => {
+    console.log('删除成功')
+})
+```
+
+* 异步并发删除
+
+```js
+function myRmdir(dir, cb) {
+    fs.stat(dir, (err, statObJ) => {
+        if (statObJ.isFile()) {
+            fs.unlink(dir, cb); // 如果是文件直接删除
+        } else {
+            // 是目录 同时删除子元素 (如果子元素为空需要删除自己)
+            fs.readdir(dir, (err, dirs) => {
+                dirs = dirs.map(d => path.join(dir, d));
+                if (dirs.length == 0) {
+                    return fs.rmdir(dir, cb);
+                }
+                let idx = 0;
+
+                function removeCount() {
+                    if (++idx === dirs.length) {
+                        fs.rmdir(dir, cb)
+                    }
+                }
+                dirs.forEach(dir => {
+                    myRmdir(dir, removeCount)
+                })
+            })
+        }
+    })
+}
+
+myRmdir('public', () => {
+    console.log('删除')
+})
+```
+
+* 异步并发删除 promise优化
+
+```js
+function myRmdir(dir, cb) {
+    return new Promise((resolve, reject) => {
+        fs.stat(dir, (err, statObJ) => {
+            if (err) reject(err);
+            if (statObJ.isFile()) {
+                fs.unlink(dir, resolve); // 如果是文件直接删除
+            } else {
+                // 是目录 同时删除子元素 (如果子元素为空需要删除自己)
+                fs.readdir(dir, (err, dirs) => {
+                    if (err) reject(err);
+
+                    dirs = dirs.map(d => myRmdir(path.join(dir, d)));
+                    Promise.all(dirs).then(() => {
+                        fs.rmdir(dir, resolve);
+                    }).catch(err => {
+                        reject(err);
+                    })
+                })
+            }
+        })
+    })
+}
+
+myRmdir('public').then(() => {
+    console.log('删除成功')
+}).catch(err => {
+    console.log(err)
+})
+```
+
+* 异步并发删除，async + await
+
+```js
+async function myRmdir(dir) {
+    let statObj = await fs.stat(dir);
+    if (statObj.isDirectory()) {
+        let dirs = await fs.readdir(dir); // 返回的是数组
+        // 将所有子文件删除  并且将promise.all包裹起来
+        // Promise.all 返回的是promise实例
+        await Promise.all(dirs.map(d => myRmdir(path.join(dir, d))));
+        await fs.rmdir(dir)
+    } else {
+        await fs.unlink(dir)
+    }
+}
+
+myRmdir('public').then(() => {
+    console.log('删除成功')
+}).catch(err => {
+    console.log(err)
+})
+```
+
+#### 3.3 path路径模块
 
 这个模块主要帮我们解决node相对路径和绝对路径的问题：
 
-大多数数情况下使用绝对路径，因为相对路径有时候相对于是命令行工具的当前工作目录，而我们在读取文件或设置文件路径时都会选择使用`绝对路径`,这也是因为node的读取文件和写入文件的`api`都是基于命令行窗口的路径，当`require()`写的相对基于文件目录的。
+大多数数情况下使用绝对路径，因为相对路径有时候相对于是命令行工具的当前工作目录，而我们在读取文件或设置文件路径时都会选择使用`绝对路径`，这是因为对于我们来说，读写文件使用绝对路径才会有所保障。而path这个模块我们常用的就是`path.resolve()`、`path.join()`,它们两个存在很多的相似之处。
 
 注意：**我们可以使用(__dirname)获取当前文件所在的绝对路径**
 
-* 路径拼接 `path.join('路径','路径',....)`
+*  `path.join('路径','路径',....)`
 
 ```js
 // 导入path模块
@@ -385,7 +559,33 @@ let finialPath = path.join('itcast','a','b','c.css')
 console.log(finialPath) // window: itcast/a/b/c.css linux: itcast\a\b\c.css
 ```
 
-### 3.3 buffer 模块
+* path.resolve('路径'，'路径',.....)
+
+**path.resolve()会根据当前的工作目录而改变**
+
+```js
+path.resolve('/目录1/目录2', './目录3');
+// 返回: '/目录1/目录2/目录3'
+
+path.resolve('/目录1/目录2', '/目录3/目录4/');
+// 返回: '/目录3/目录4'
+
+path.resolve('目录1', '目录2/目录3/', '../目录4/文件.gif');
+// 如果当前工作目录是 /目录A/目录B，
+// 则返回 '/目录A/目录B/目录1/目录2/目录4/文件.gif'
+```
+
+他们两者如果都配合`__dirname`这个全局变量来拼接路径，只要不拼接单纯`/`那么它们就几乎没有差别。
+
+`path.resolve()`拼接的路径遇到`/`则会将`/`后面的为最终拼接结果，而`path.join()`则不会
+
+```js
+const path = require('path')
+console.log(path.resolve(__dirname, 'a', '/a')) // e:\a
+console.log(path.join(__dirname, 'a', '/a')) // e:\珠峰教育\mycode\02_node\10.Fs\a\a
+```
+
+#### 3.4 buffer 模块
 
 ```js
 // 创建10字节
