@@ -884,7 +884,7 @@ function _update (oldVnode, vnode) {
 
 ## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#_12-keep-alive平时在哪使用？原理是)12.`keep-alive`平时在哪使用？原理是?
 
-`keep-alive`主要是缓存，采用的是`LRU`算法。 最近最久未使用法。
+`keep-alive`主要是缓存，采用的是`LRU`算法。 最近最久未使用法。缓存的是虚拟dom，当我们访问的缓存的组件，就会直接从vnode上取出`$el`去挂载，跳转重新渲染流程
 
 > 原理地址：`src/core/components/keep-alive.js`
 
@@ -1037,10 +1037,207 @@ function mergeField (key) {
 
 - 外观模式、适配器模式、迭代器模式、模板方法模式 .....
 
-## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#_15-谈谈vue3和vue2的区别)15.谈谈`Vue3`和`Vue2`的区别?
+## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#_15-谈谈vue3和vue2的区别)16.谈谈`Vue3`和`Vue2`的区别?
 
 - 对`TypeScript`支持不友好（所有属性都放在了this对象上，难以推倒组件的数据类型）
 - 大量的`API`挂载在Vue对象的原型上，难以实现`TreeShaking`。
 - 架构层面对跨平台`dom`渲染开发支持不友好
 - `CompositionAPI`。受`ReactHook`启发
 - 对虚拟DOM进行了重写、对模板的编译进行了优化操作...
+
+### 17.vue-router有几种钩子函数，具体执行流程是怎么样的？
+
+钩子函数的种类有：全局守卫，路由守卫，组件守卫
+
+* 导航被触发
+* 在失活的组件里调用`beforeRouteLeave`守卫
+* 调用全局的`beforeEach`守卫
+* 在重用的组件里调用`beforeRouteUpdate`守卫（2.2+）
+* 在路由配置里调用`beforeEnter`
+* 解析异步路由组件
+* 在被激活的组件里调用`beforeRouteEnter`
+* 调用全局的`beforeResolve`守卫（2.5+）
+* 导航被确认
+* 调用全局的`afterEach`钩子
+* 触发DOM更新
+* 调用`beforeRouteEnter`守卫中传给`next`的回调函数，创建好的组件实例会作为回调函数的参数传入
+
+```js
+const queue: Array<?NavigationGuard> = [].concat(
+    // in-component leave guards
+    extractLeaveGuards(deactivated), // 离开钩子
+    // global before hooks
+    this.router.beforeHooks, // 全局before钩子
+    // in-component update hooks
+    extractUpdateHooks(updated), // 更新钩子 beforeRouteUpdate
+    // in-config enter guards
+    activated.map(m => m.beforeEnter), // beforeEnter钩子
+    // async components
+    resolveAsyncComponents(activated) // 异步组件 )
+    runQueue(queue, iterator, () => {
+    // wait until async components are resolved before
+    // extracting in-component enter guards
+    const enterGuards = extractEnterGuards(activated) //
+    beforeRouteEnter
+    const queue = enterGuards.concat(this.router.resolveHooks) //
+    beforeResolve
+    runQueue(queue, iterator, () => {})
+})
+}
+```
+
+### 18.Vue-Router的两种模式的区别
+
+* `Vue-Router`有三种模式：`hash`，`history`，`abstract`
+* `abstract`模式是在不支持浏览器`API`环境使用，不依赖于浏览器历史
+* `hash`模式：`hash`+`popState/hashChange`兼容性好但不够美观，`hash`服务端无法获取，不利于`seo`优化
+* `history`模式：`historyApi`+`popState`，优点是美观，但每次刷新会往服务器发送请求，会出现404页面
+
+### 19.谈一下你对`veux`的个人理解
+
+vuex是专门为vue提供的全局状态管理系统，用于多个组件中数据共享、数据缓存等。（无法持久化，内部核心原理是通过创建一个全局实例`new Vue`）
+
+> 方法：`replaceState`、`subscribe`、`registerModule`、`namespace(modules)`、辅助函数
+
+### 20.mutation 和 action的区别
+
+* mutation：主要在于修改状态，必须同步执行
+* action：执行业务代码、方便复用，逻辑可以为异步，不能直接修改状态
+
+vuex中为监控data是否是通过mutation修改，若不是会报错
+
+```js
+function enableStrictMode (store) {
+    store._vm.$watch(function () { return this._data.$$state },
+                     function () {
+        if ((process.env.NODE_ENV !== 'production')) {
+            assert(store._committing, "do not mutate vuex store state
+                   outside mutation handlers.");
+                   }
+    }, { deep: true, sync: true }); // 同步watcher监控状态变化 }
+```
+
+### 21.vue中的性能优化有哪些？
+
+* 数据层级不易过深，合理设置响应式数据
+* 使用数据时缓存值的结果，不频繁取值
+* 合理设置key属性
+* v-show 和 V-if 的选取
+* 控制组件粒度---> Vue采用组件级更新
+* 采用函数式组件 ---> 函数组件开销低，它没有this，就没有状态
+* 采用异步组件 ----> 借助`webpack`分包能力
+* 使用`keep-alive`缓存组件
+* 虚拟滚动，时间分片等策略
+* 打包优化
+
+### 22.Vue中使用了那些设计模式
+
+* **单例模式** - 单例模式就是整个程序有且仅有一个实例
+
+```js
+export function install (_Vue) {
+    if (Vue && _Vue === Vue) {
+        if (__DEV__) {
+            console.error(
+                '[vuex] already installed. Vue.use(Vuex) should be called
+                only once.'
+            )
+        }
+        return
+    }
+    Vue = _Vue
+    applyMixin(Vue) }
+```
+
+* **工厂模式** - 传入参数即可创建实例 ( createElement )
+
+```js
+export function _createElement (
+context: Component,
+ tag?: string | Class<Component> | Function | Object,
+ data?: VNodeData,
+ children?: any,
+ normalizationType?: number
+): VNode | Array<VNode> {
+    // ...
+    if (typeof tag === 'string') {
+        let Ctor
+        ns = (context.$vnode && context.$vnode.ns) ||
+            config.getTagNamespace(tag)
+        if (config.isReservedTag(tag)) {
+            vnode = new VNode(
+                config.parsePlatformTagName(tag), data, children,
+                undefined, undefined, context
+            )
+        } else if ((!data || !data.pre) && isDef(Ctor =
+                                                 resolveAsset(context.$options, 'components', tag))) {
+            vnode = createComponent(Ctor, data, context, children, tag)
+        } else {
+            vnode = new VNode(
+                tag, data, children,
+                undefined, undefined, context
+            )
+        }
+    } else {
+    vnode = createComponent(tag, data, context, children)
+}
+// ....
+}
+```
+
+* **发布订阅模式** - 订阅者把自己想订阅的事件注册到调度中心，当该事件触发时候，发
+
+  布者发布该事件到调度中心，由调度中心统一调度订阅者注册到调度中心的处理代
+
+  码。
+
+```js
+Vue.prototype.$on = function (event: string | Array<string>, fn:
+                               Function): Component {
+    const vm: Component = this
+    if (Array.isArray(event)) {
+        for (let i = 0, l = event.length; i < l; i++) {
+            vm.$on(event[i], fn)
+        }
+    } else {
+        (vm._events[event] || (vm._events[event] = [])).push(fn)
+        if (hookRE.test(event)) {
+            vm._hasHookEvent = true
+        }
+    }
+    return vm
+}
+Vue.prototype.$emit = function (event: string): Component {
+    const vm: Component = this
+    let cbs = vm._events[event]
+    if (cbs) {
+        cbs = cbs.length > 1 ? toArray(cbs) : cbs
+        const args = toArray(arguments, 1)
+        const info = `event handler for "${event}"`
+        for (let i = 0, l = cbs.length; i < l; i++) {
+            invokeWithErrorHandling(cbs[i], vm, args, vm, info)
+        }
+    }
+    return vm
+}
+```
+
+* **观察者模式** - watcher & dep 的关系
+
+* **代理模式** - 代理模式给某一个对象提供一个代理对象,并由代理对象控制对原对象的
+
+  引用。_data属性、proxy、防抖、节流
+
+* **装饰模式** - Vue2 装饰器的用法 （对功能进行增强）
+
+* **中介者模式** - 中介者是一个行为设计模式,通过提供一个统一的接口让系统的不同部
+
+  分进行通信。 Vuex
+
+* **策略模式** - 策略模式指对象有某个行为,但是在不同的场景中,该行为有不同的实现方
+
+  案。
+
+* **外观模式** - 提供了统一的接口，用来访问子系统中的一群接口
+
+* ....

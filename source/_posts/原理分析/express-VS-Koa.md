@@ -194,6 +194,8 @@ module.exports = response
 
 在koa的中间件`app.use()`，确实内部是通过promise包裹的，所以它支持`async+await`的方式让`next()`后的代码进行等待，这是因为一个promise中返回或者`await`一个promise，前面的promise要等待后面的promise的状态改变，才能继续往下执行。其中核心代码为：
 
+> 注意：服务端的响应是在第一个中间件函数执行完毕后调用`res.end()`。而在koa中我们是将所有的中间件函数组成一个promise套一个promise的形式，那么也可以理解成当最外层的promise的状态改变后，我们的服务端才会去调用`res.end()`结束服务器响应。
+
 ```js
 compose(ctx) {
     let index = -1; // 默认没有调用过
