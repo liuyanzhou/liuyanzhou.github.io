@@ -379,15 +379,17 @@ console.log(arr1.join('&')); // green&blue&pink
 
 > 下面的方法都是**不改变原数组**
 
-| 方法名                                       | 描述                                                         | 返回值                    |
-| -------------------------------------------- | ------------------------------------------------------------ | ------------------------- |
-| arr.forEach(callback(item,index))            | 将arr数组中的每一项都执行一次`callback`函数,若要中途跳出循环则需要抛出结束循环的语句， | undefined                 |
-| arr.every(callback(item,index))              | 测试一个数组内的`所有元素`是否都能通过某个指定函数的测试，   | 布尔值                    |
-| arr.some(callback(item,index))               | 测试数组中是不是`至少有1个元素`通过了被提供的函数测试,如果找到第一个符合条件的元素便终止遍历 | 布尔值                    |
-| arr.find(callback(item,index))**(ES6)**      | 遍历寻找数组中第一个符合`callback`函数条件的元素，找到则终止遍历 | 符合条件元素或`undefined` |
-| arr.findIndex(callback(item,index))**(ES6)** | 遍历寻找数组中第一个符合`callback`函数条件的元素并获取到其的`索引`，并终止遍历 | 找到返回索引值,否则`-1`   |
-| arr.map(callback(item,index))**(ES6)**       | 遍历数组，将每一个元素执行一次`callback`之后返回一个新数组   | 新数组                    |
-| arr.filter(callback(item,index))**(ES6)**    | 遍历数组，将每一个元素执行`callback`之后，若元素满足函数返回条件，则保留 | 新数组                    |
+| 方法名                                               | 描述                                                         | 返回值                    |
+| ---------------------------------------------------- | ------------------------------------------------------------ | ------------------------- |
+| arr.forEach(callback(item,index))                    | 将arr数组中的每一项都执行一次`callback`函数,若要中途跳出循环则需要抛出结束循环的语句， | undefined                 |
+| arr.every(callback(item,index))                      | 测试一个数组内的`所有元素`是否都能通过某个指定函数的测试，   | 布尔值                    |
+| arr.some(callback(item,index))                       | 测试数组中是不是`至少有1个元素`通过了被提供的函数测试,如果找到第一个符合条件的元素便终止遍历 | 布尔值                    |
+| arr.find(callback(item,index))**(ES6)**              | 遍历寻找数组中第一个符合`callback`函数条件的元素，找到则终止遍历 | 符合条件元素或`undefined` |
+| arr.findIndex(callback(item,index))**(ES6)**         | 遍历寻找数组中第一个符合`callback`函数条件的元素并获取到其的`索引`，并终止遍历 | 找到返回索引值,否则`-1`   |
+| arr.map(callback(item,index))**(ES6)**               | 遍历数组，将每一个元素执行一次`callback`之后返回一个新数组   | 新数组                    |
+| arr.filter(callback(item,index))**(ES6)**            | 遍历数组，将每一个元素执行`callback`之后，若元素满足函数返回条件，则保留 | 新数组                    |
+| arr.reduce(function(result,item,index),initial)      | 对数组进行迭代，从左到右，一般用于求和                       | 迭代后返回的结果          |
+| arr.reduceRight(function(result,item,index),initial) | 对数组进行迭代，从右往左                                     | 迭代后返回的结果          |
 
 **代码演示**
 
@@ -474,7 +476,65 @@ let arr2 = arr.flatMap(item => {
 console.log(arr2);
 ```
 
+### reduce语法
 
+语法：
+
+```js
+arr.reduce(function(result,item,index){
+    // + result 上一次迭代返回的结果;
+    //  - 当数组长度 >1 并且 initial未传，第一次迭代不存在上一次迭代，result是数组第一项的值，相当于数组是从第二项开始迭代
+    //  - 当数组长度 >1 并且 initial有传，第一次迭代中result的值是initial的值，item为数组第一项开始迭代
+    //  - 当数组长度为0 并 initial未传，则报错
+    //  - 当数组长度为1 并 initial未传，则reduce结束直接返回数组第一项的值
+    //  - 当数组长度诶0 并 initial有传，则reduce结束直接返回initial的值
+    // + item 当前迭代项
+    // + index 当前迭代项的索引
+},[initial]);
+
+// arr.reduceRight和arr.reduce()的语法是一样的，只不过是迭代方向不同，reduceRight是从右往左迭代
+arr.reduceRight(function(result,item,index){xxx},[initial])
+```
+
+开始运用
+
+```js
+let arr = [1,2,3,4];
+let total = arr.reduce(function(result,item)=>{
+	return result + item;
+},0);
+console.log(total); // => 10
+```
+
+手撕`reduce`代码
+
+```js
+Array.prototype.reduce = function reduce(callback,initial) {
+    let self = this,
+        i=0,
+        result=initial,
+        len=self.length,
+        isInit = typeof initial === "undefined" ? false:true;
+    // 格式验证
+    if(typeof callback !== "function") throw new TypeError(`${callback} is not a function!`);
+    if (len === 0 && !isInit) throw new TypeError(`Reduce of empty array with no initial value`);
+    if (len === 0 && isInit) return initial;
+    if (len === 1 && !isInit) return self[0];
+    if (!isInit) {
+        result = self[0];
+        i = 1;
+    }
+    for (; i < len; i++) {
+        result = callback(result, self[i], i);
+    }
+    return result;
+};
+let arr = [1,2,3];
+let total = arr.reduce(function (result, item) {
+    return result + item;
+});
+console.log(total); 
+```
 
 ## 五、String 字符串对象
 
@@ -772,38 +832,125 @@ console.log(p.name);    // 4. 这个输出什么 -> 张学友
 
 ## 九、数据类型的判断
 
-区分数组和对象的三种方法：`constructor`、`instanceof`、`Object.prototype.toString.call()`
+在 JavaScript 里使用 typeof 判断类型，只能区分基本类型，即：number，string，undefined，boolean，object。不包括null，`typeof null == object`
 
-* constructor 通过的是构造函数来实现判断
-* A instanceof B 通过查找A的原型链有没有B
-* Object.prototype.toString.call()  返回的是 `[object Type]`的形式。
+当我们进行数据类型检测时，我们可以使用四种方法
 
-> 在 JavaScript 里使用 typeof 判断类型，只能区分基本类型，即：number，string，undefined，boolean，object。不包括null，`typeof null == object`
->
-> 对于null、array、function、object来说，使用`typeof`都会统一返回`object`字符串。要想区分对象、数组、函数、单纯使用`typeof `是不行的。在`JS`中，可以通过`Object.prototype.toString.call()`方法，判断某个对象属于哪种类型，分为`null`、`string`、`boolean`、`number`、`undefined`、`array`、`function`、`object`、`date`、`math`
+* typeof
 
-通过变量 `arr`、`obj`来区分
+  * 底层机制：直接在计算机底层基于数据类型的值（二进制）进行检测
+  * 缺点：但`typeof null == "object"`，因为对象存储在计算机中，都是以`000`开始的二进制存储，而null也是，所以`null`检测出来的结果是对象，（可以理解为计算机的bug）
+  * 缺点：typeof 普通对象/数组对象/正则对象/日期对象 都是 `"object"`
+
+  ```js
+  let obj = {}
+  let arr = []
+  console.log(typeof null); // object 
+  console.log(typeof obj); // object 
+  console.log(typeof arr); // object
+  console.log(typeof 1 ); // number
+  ```
+
+* instanceof 
+
+  * 底层机制：只要当前类的原型出现在实例的原型链上，结果都是`true`
+  * 缺点：不支持基本类型的检测，支持对象类型检测，由于我们可以肆意的修改原型指向，所以检测出来的结果是不准的
+
+  ```js
+  let arr = [];
+  console.log(arr instanceof Array) // true 
+  console.log(arr instanceof RegExp) // false 
+  console.log(arr instanceof Object) // true
+  
+  // 肆意改动fn的原型指向，instanceof就会判断不准确
+  function fn() {
+      this.x = 100
+  }
+  fn.prototype = Object.create(Array.prototype)
+  let f = new fn()
+  console.log(f instanceof Array) // true
+  ```
+
+  **instanceof的底层实现**
+
+  ```js
+  function instance_of(example, classFunc) {
+      let classFuncPrototype = classFunc.prototype,
+          proto = Object.getPrototypeOf(example); // example.__proto__
+      while (true) {
+          if (proto == null) {
+              // Object.prototype.__proto__ ==> null 
+              return false;
+          }
+          if (proto == classFuncPrototype) {
+              // 查找过程中发现有，则证明实例是这个类的一个实例
+              return true
+          }
+          proto = Object.getPrototypeOf(proto);
+      }
+  
+  }
+  
+  let arr = [];
+  console.log(instance_of(arr, Array)) // true
+  console.log(instance_of(arr, RegExp)) // false 
+  console.log(instance_of(arr, Object)) // true
+  ```
+
+* constructor
+
+  * 底层机制：我们实例都是有一个类新建的，这个类的原型对象上`prototype`都会有`constructor`构造器，我们可以通过这个构造器来判断数据类型，并且它支持基本类型检测
+  * 缺点：用起来看似比instanceof还好用一些（支持基本类型检测）但类原型对象上的`constructor`我们可以随便该，所以也是不准的
+
+  ```js
+  let arr = [];
+  console.log(arr.constructor == Array) // true 
+  console.log(arr.constructor == RegExp) // false 
+  console.log(arr.constructor == Object) // false 
+  
+  // 肆意修改类上的prototype的constructor属性
+  let n = 1;
+  Number.prototype.constructor = 'aa' 
+  console.log(n.constructor == Number) // false
+  ```
+
+* Object.prototyoe.toString.call()
+
+  * 底层机制：通过`Object.prototype.toString(`)执行，让它里面的this变为要检测的值，那就返回当前值所属类的信息
+  * 它是标椎检测数据类型的方法，能检测所有数据类型
+
+  ```js
+  Object.prototype.toString.call(arr) // [object Array]
+  Object.prototype.toString.call(obj) // [object Object]
+  Object.prototype.toString.call(123) // [object Number]
+  Object.prototype.toString.call("123") // [object String]
+  Object.prototype.toString.call(new Date) // [object Date]
+  Object.prototype.toString.call(null) // [object Null]
+  ```
+
+**封装一个万能的数据类型检测方法**
 
 ```js
-let arr =[];
-let obj = [];
+(function() {
+    var class2type = {};
+    var toString = class2type.toString; // => Object.prototype.toString
 
-// ---------------------constructor---------------------------------
-arr.constructor // ƒ Array() { [native code] }
-obj.constructor // ƒ Object() { [native code] }
+    // 设定数据类型的映射表
+    ["Boolean", "Number", "String", "Function", "Array", "Date", "RegExp", "Object", "Error", "Symbol"].forEach(name => {
+        class2type[`[object ${name}]`] = name.toLowerCase()
+    });
 
-// ----------------------instanceof----------------------------------
-arr instanceof Array // true 
-obj instanceof Object // true
-
-// -------------------Object.prototype.toString.call()------------------
-Object.prototype.toString.call(arr) // [object Array]
-Object.prototype.toString.call(obj) // [object Object]
-Object.prototype.toString.call(123) // [object Number]
-Object.prototype.toString.call("123") // [object String]
-Object.prototype.toString.call(new Date) // [object Date]
-Object.prototype.toString.call(null) // [object Null]
-// ....
+    function toType(obj) {
+        if (obj == null) {
+            // 传递的值是null或undefined 就返回的是字符串
+            return obj + "";
+        }
+        // 基本数据类型都采用typeof检测
+        return typeof obj === "object" || typeof obj === "function" ?
+            class2type[toString.call(obj)] || "object" : typeof obj
+    }
+    window.toType = toType
+})()
 ```
 
 

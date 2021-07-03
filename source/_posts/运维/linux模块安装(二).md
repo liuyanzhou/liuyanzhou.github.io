@@ -1,9 +1,9 @@
 ---
-title: linux软件包的安装
+title: linux软件包的安装(二)
 date: 2021-03-04 00:44:22
 categories: 运维
 top: false
-summary: linux软件包的安装
+summary: linux软件包的安装(二)
 tags: 
  - 运维
 ---
@@ -26,6 +26,8 @@ tags:
     * 安装过程比较复杂
     * 编译过程比较长
     * 安装过程一旦报错，非常难以排查
+  
+  > 源码包就是我们gcc要进行make的安装包，它可以让我们自定义安装
 * 二进制包（把源代码包结果编译生成`0/1`二进制，RPM包、系统默认的安装包）
   * 优点：
     * 包管理系统比较简单，只要通过简单的命令就可以实现包的安装、升级、查询和卸载
@@ -34,15 +36,20 @@ tags:
     * 经过编译则不能看到源代码
     * 功能选择不灵活
     * 依赖性比较麻烦
+  
+  > 我们通过yum安装的包
 * 脚本安装包（就是把复杂的安装过程写成了脚本，可以一键安装，本质上安装的还是源代码和二进制包）
   * 优点是安装简单
   * 缺点是失去了自定义性
+
+> 脚本安装包就是把make或yum写成一个shell脚本去一键安装
 
 ### YUM在线管理
 
 - yum = Yellow dog Updater, Modified主要功能是更方便的添加/删除/更新RPM包.它能自动解决包的倚赖性问题.
 - 这是rpm包的在线管理命令
 - 将所有的软件名放到官方服务器上，当进行YUM在线安装时，可以自动解决依赖性问题
+- **当我们yum的安装源上没有我们要安装包的源，那我们要先wget下载一个文件并写入yum的`/etc/yum.repos.d/`**目录下，格式为下面的例子
 - /etc/yum.repos.d/
   - CentOS-Base.repo
   - epel.repo
@@ -220,7 +227,7 @@ yum -y install mysql57-community-release-el7-11.noarch.rpm
 yum repolist enabled | grep mysql.*
 ```
 
-**安装mysql服务器**
+**安装mysql服务器**，可以直接往/var/cache/直接安装包安装
 
 * `yum install mysql-community-server -y`
 
@@ -264,4 +271,3 @@ systemctl restart mysqld.service
 ```bash
 mysql -h115.29.148.6 -uroot -p
 ```
-

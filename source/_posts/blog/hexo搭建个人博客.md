@@ -2,7 +2,7 @@
 title: hexo搭建个人博客
 date: 2020-04-07 21:04:12
 categories: blog
-top: true
+top: false
 summary: 这是一篇适合小白搭建自己的`blog`流程
 tags: 
  - blog

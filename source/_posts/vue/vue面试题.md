@@ -2,7 +2,7 @@
 title: vue面试题
 date: 2020-11-19 19:45:05
 categories: Vue
-top: false
+top: true
 summary:  vue面试题
 tags:  Vue
 ---
@@ -11,19 +11,21 @@ tags:  Vue
 
 ## 1. 请说一下响应式数据的理解？
 
-### 核心答案:
+**核心答案:**
 
 数组和对象类型当值变化时如何劫持到。对象内部通过defineReactive方法，使用Object.defineProperty将属性进行劫持（只会劫持已经存在的属性），数组则是通过重写数组方法来实现。
 
 > 这里在回答时可以带出一些相关知识点（比如多层对象是通过递归来实现劫持，顺带提出`Vue3`中是使用proxy来实现响应式数据）
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答)补充回答:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答)补充回答:**
 
 内部依赖收集是怎样做到的，每个属性都拥有自己的dep属性，存放他所依赖的watcher，当属性变化后会通知自己对应的watcher去更新 （其实后面会讲到每个对象类型自己本身也拥有一个dep属性，这个在$set面试题中在进行讲解）
 
+dep与watcher是双向绑定的关系【dep记住watcher，watcher也记住dep】，当我们劫持的数据变化时，dep会去更新它收集到的所有watcher调用update方法。而watcher记住dep是为了在computed内部依赖收集时，可能会没有收集到渲染watcher，而从computed watcher中找到所有的deps.addsub()将渲染watcher收集起来。
+
 > 这里可以引出性能优化相关的内容 （1）对象层级过深，性能就会差 （2）不需要响应数据的内容不要放到data中 （3） `Object.freeze`() 可以冻结数据
 
-###  快速Mock:
+**快速Mock:**
 
 ```js
 let state = { count: 0 };
@@ -68,17 +70,17 @@ watcher(() => {
 
 ## 2.`Vue`如何检测数组变化？
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-2)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-2)核心答案:**
 
 数组考虑性能原因没有用defineProperty对数组的每一项进行拦截，而是选择重写数组（push,shift,pop,splice,unshift,sort,reverse）方法进行重写。
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-2)补充回答:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-2)补充回答:**
 
 在Vue中修改数组的索引和长度是无法监控到的。需要通过以上7种变异方法修改数组才会触发数组对应的watcher进行更新。数组中如果是对象数据类型也会进行递归劫持。
 
 > 那如果想更改索引更新数据怎么办？可以通过Vue.$set()来进行处理 =》 核心内部用的是splice方法
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-2)快速Mock:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-2)快速Mock:**
 
 ```js
 let state = [1,2,3];
@@ -105,7 +107,7 @@ state.push(4);
 
 ## 3.`Vue`中模板编译原理？
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-3)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-3)核心答案:**
 
 如何将template转换成render函数(这里要注意的是我们在开发时尽量不要使用template，因为将template转化成render方法需要在运行时进行编译操作会有性能损耗，同时引用带有compiler包的vue体积也会变大。默认.vue文件中的template处理是通过vue-loader来进行处理的并不是通过运行时的编译 - 后面我们会说到默认vue项目中引入的vue.js是不带有compiler模块的)。
 
@@ -113,13 +115,13 @@ state.push(4);
 - 2.对静态语法做静态标记 - `markUp`
 - 3.重新生成代码 -`codeGen`
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-3)补充回答:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-3)补充回答:**
 
 模板引擎的实现原理就是new Function + with来进行实现的
 
 > vue-loader中处理template属性主要靠的是vue-template-compiler模块
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-3)快速Mock:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-3)快速Mock:**
 
 ```html
 <script src="./node_modules/vue-template-compiler/browser.js"></script>
@@ -135,15 +137,15 @@ state.push(4);
 
 ## 4.生命周期钩子是如何实现的?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-4)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-4)核心答案:**
 
 Vue的生命周期钩子就是回调函数而已，当创建组件实例的过程中会调用对应的钩子方法
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-4)补充回答:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-4)补充回答:**
 
 内部主要是使用callHook方法来调用对应的方法。核心是一个发布订阅模式，将钩子订阅好（内部采用数组的方式存储），在对应的阶段进行发布！
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-4)快速Mock:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-4)快速Mock:**
 
 ```js
 function mergeHook(parentVal, childValue) {
@@ -185,15 +187,15 @@ new Vue({
 
 ## 5.`Vue.mixin`的使用场景和原理？
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-5)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-5)核心答案:**
 
 Vue.mixin的作用就是抽离公共的业务逻辑，原理类似“对象的继承”，当组件初始化时会调用mergeOptions方法进行合并，采用策略模式针对不同的属性进行合并。如果混入的数据和本身组件中的数据冲突，会采用“就近原则”以组件的数据为准。
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-5)补充回答:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-5)补充回答:**
 
 mixin中有很多缺陷 "命名冲突问题"、"依赖问题"、"数据来源问题",这里强调一下mixin的数据是不会被共享的！
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-5)快速Mock:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-5)快速Mock:**
 
 ```js
 Vue.mixin = function (obj) {
@@ -210,15 +212,15 @@ Vue.mixin({
 
 ## 6.`nextTick`在哪里使用?原理是?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-6)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-6)核心答案:**
 
 nextTick中的回调是在下次 DOM 更新循环结束之后执行的延迟回调。在修改数据之后立即使用这个方法，获取更新后的 DOM。原理就是异步方法(promise,mutationObserver,setImmediate,setTimeout)经常与事件环一起来问(宏任务和微任务)
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-6)补充回答:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-6)补充回答:**
 
 vue多次更新数据，最终会进行批处理更新。内部调用的就是nextTick实现了延迟更新，用户自定义的nextTick中的回调会被延迟到更新完成后调用，从而可以获取更新后的DOM。
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-6)快速Mock:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-6)快速Mock:**
 
 ```js
 let cbs = [];
@@ -248,11 +250,11 @@ console.log('sync...')
 
 ## 7.`Vue`为什么需要虚拟DOM？
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-7)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-7)核心答案:**
 
 Virtual DOM就是用js对象来描述真实DOM，是对真实DOM的抽象，由于直接操作DOM性能低但是js层的操作效率高，可以将DOM操作转化成对象操作，最终通过diff算法比对差异进行更新DOM（减少了对真实DOM的操作）。虚拟DOM不依赖真实平台环境从而也可以实现跨平台。
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-7)补充回答:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-7)补充回答:**
 
 虚拟DOM的实现就是普通对象包含tag、data、children等属性对真实节点的描述。（本质上就是在JS和DOM之间的一个缓存）
 
@@ -260,11 +262,11 @@ Virtual DOM就是用js对象来描述真实DOM，是对真实DOM的抽象，由�
 
 ## 8.`Vue`中的`diff`原理
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-8)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-8)核心答案:**
 
 Vue的diff算法是平级比较，不考虑跨级比较的情况。内部采用深度递归的方式 + 双指针的方式进行比较。
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-8)补充回答:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-8)补充回答:**
 
 ![vue-diff](/medias/imges/vue/interview/vue-diff.jpg)
 
@@ -280,7 +282,7 @@ Vue的diff算法是平级比较，不考虑跨级比较的情况。内部采用�
 
 ## 9.`Vue.set`方法是如何实现的?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-9)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-9)核心答案:**
 
 为什么$set可以触发更新,我们给对象和数组本身都增加了dep属性。当给对象新增不存在的属性则触发对象依赖的watcher去更新，当修改数组索引时我们调用数组本身的splice方法去更新数组
 
@@ -329,7 +331,7 @@ export function set (target: Array | Object, key: any, val: any): any {
 
 ## 10`Vue`的生命周期方法有哪些？一般在哪一步发起请求及原因
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-10)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-10)核心答案:**
 
 - `beforeCreate` 在实例初始化之后，数据观测(data observer) 和 event/watcher 事件配置之前被调用。
 
@@ -339,7 +341,7 @@ export function set (target: Array | Object, key: any, val: any): any {
 
 - `mounted` el 被新创建的 `vm.$el` 替换，并挂载到实例上去之后调用该钩子。
 
-- `beforeUpdate` 数据更新时调用，发生在虚拟 DOM 重新渲染和打补丁之前。
+- `beforeUpdate` 数据更新时调用，发生在虚拟 DOM 重新渲染和打补丁之前，其是传入watcher的cb函数中去
 
 - `updated` 由于数据更改导致的虚拟 DOM 重新渲染和打补丁，在这之后会调用该钩子。
 
@@ -349,7 +351,7 @@ export function set (target: Array | Object, key: any, val: any): any {
 
   除，所有的子实例也会被销毁。 该钩子在服务器端渲染期间不被调用。
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-9)补充回答:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#补充回答-9)补充回答:**
 
 - `created` 实例已经创建完成，因为它是最早触发的原因可以进行一些数据，资源的请求。(服务端渲染支持created方法)
 - `mounted` 实例已经挂载完成，可以进行一些DOM操作
@@ -359,50 +361,62 @@ export function set (target: Array | Object, key: any, val: any): any {
 
 ## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#_11-vue组件间传值的方式及之间的区别？)11.`Vue`组件间传值的方式及之间的区别？
 
-- props和$emit 父组件向子组件传递数据是通过prop传递的，子组件传递数据给父组件是通过$emit触发事件来做到的
-- $parent,$children 获取当前组件的父组件和当前组件的子组件
+- props和\$emit 父组件向子组件传递数据是通过prop传递的，子组件传递数据给父组件是通过$emit触发事件来做到的
+- \$parent,$children 获取当前组件的父组件和当前组件的子组件
 - `$attrs`和`$listeners` A->B->C。Vue 2.4 开始提供了`$attrs`和`$listeners`来解决这个问题
 - 父组件中通过`provide`来提供变量，然后在子组件中通过`inject`来注入变量。
 - `$refs` 获取实例
 - `envetBus` 平级组件数据传递 这种情况下可以使用中央事件总线的方式
 - `vuex`状态管理
 
-(1) props实现:**`src/core/vdom/create-component.js:101`**、 **`src/core/instance/init.js:74`**、**`scr/core/instance/state:64`**
+(1) props实现:**`src/core/vdom/create-component.js:192`**、 **`src/core/instance/init.js:74`**、**`scr/core/instance/state:64`**
 
 (2) 事件机制实现: **`src/core/vdom/create-component.js:101`**、 **`src/core/instance/init.js:74`**、**`src/core/instance/events.js:12`**
 
+> 在`createComponent` 中的`extractPropsFromVNodeData`方法将组件的虚拟节点的props属性提取出来，在传入create Vnode虚拟节点的类上，之后就可以通过初始化注册到组件上【根元素的属性才会定义为响应式的通过`toggleObserving`】。事件就直接注册到`listeners`属性上，用发布订阅模式来实现
+
 (3) parent&children实现:**`src/core/vdom/create-component.js:47`**、**`src/core/instance/lifecycle.js:32`**
 
-(4)provide&inject实现: **`src/core/instance/inject.js:7`**,---> inject是不停的向上查找父亲是否有提供进来的属性
+> 在创建组件的虚拟节点的时候会将父组件实例传入，之后在组件初始化的lifecycle中去构建父子关系
+
+(4)provide&inject实现: **`src/core/instance/inject.js:7`**,
+
+>  inject是不停的向上查找父亲是否有provide提供进来的属性，找到就将provide定义到组件自己身上
 
 (5)`$attrs`&`$listener`实现: **`src/core/instance/render.js:49`**、**`src/core/instance/lifecycle.js:215`**
 
-(6)$refs实现:**`src/core/vdom/modules/reg.js:20`**
+> \$attr，与$listener是响应式的，从占位符节点上获取属性和方法
+
+(6)$refs实现:**`src/core/vdom/modules/ref.js:20`**
+
+> ref有两个值，放组件就是组件实例，元素就是dom元素，在v-for中会是一个数组
 
 ## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#_12-attrs是为了解决什么问题出现的？应用场景有哪些？provide-inject-不能解决它能解决的问题吗？)12.`$attrs`是为了解决什么问题出现的？应用场景有哪些？provide/inject 不能解决它能解决的问题吗？
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-11)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-11)核心答案:**
 
 $attrs主要的作用就是实现批量传递数据。provide/inject更适合应用在插件中，主要是实现跨级数据传递
 
 ## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#_13-vue的组件渲染流程)13.`Vue`的组件渲染流程?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-12)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-12)核心答案:**
 
 - 1. 父子组件渲染的先后顺序
 - 1. 组件是如何渲染到页面上的
 
 ①在渲染父组件时会创建父组件的虚拟节点,其中可能包含子组件的标签 ②在创建虚拟节点时,获取组件的定义使用`Vue.extend`生成组件的构造函数。 ③将虚拟节点转化成真实节点时，会创建组件的实例并且调用组件的$mount方法。 ④所以组件的创建过程是先父后子
 
+但调用的mounted的过程是子先调用挂载到父组价上，后父组件在挂载到页面上
+
 > 源码位置:**`src/core/vdom/patch:125`**
 
 ## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#_14-vue中组件的data为什么是一个函数)14.`Vue`中组件的data为什么是一个函数?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-13)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-13)核心答案:**
 
 每次使用组件时都会对组件进行实例化操作，并且调用data函数返回一个对象作为组件的数据源。这样可以保证多个组件间数据互不影响
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-7)快速Mock:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#快速mock-7)快速Mock:**
 
 ```js
 class Vue{
@@ -422,15 +436,15 @@ console.log(d2); // 1
 
 ## 15.请说下v-if和v-show的区别
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-14)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#核心答案-14)核心答案:**
 
 v-if在编译过程中会被转化成三元表达式,条件不满足时不渲染此节点。v-show会被编译成指令，条件不满足时控制样式将对应节点隐藏 （内部其他指令依旧会继续执行）
 
-v-if 是在编译生成codegen时进行处理(v-if名字就生成codegen代码，不满足则不生成)，v-show 是在codegen被render渲染时进行处理（它是个指令，用display来控制）
+v-if 是在编译生成codegen时进行处理(v-if编译就生成codegen代码，不满足则不生成)，v-show 是在codegen被render渲染时进行处理（它是个指令，用display来控制，将元素原本的display的属性与none进行切换）
 
 > 扩展回答: 频繁控制显示隐藏尽量不使用v-if，v-if和v-for尽量不要连用
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#v-if源码剖析)v-if源码剖析:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-1.html#v-if源码剖析)v-if源码剖析:**
 
 ```js
 function genIfConditions (
@@ -466,7 +480,7 @@ function genIfConditions (
 
 > 源码位置:**`src/compiler/codegen/index.js:155`**
 
-###  v-show源码剖析:
+**v-show源码剖析:**
 
 ```js
 {
@@ -483,7 +497,7 @@ function genIfConditions (
 
 ## 16.`Vue.use`是干什么的?原理是什么?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案)核心答案:**
 
 `Vue.use`是用来使用插件的，我们可以在插件中扩展全局组件、指令、原型方法等。
 
@@ -513,11 +527,11 @@ Vue.use = function (plugin: Function | Object) {
 
 ## 17.`vue-router`有几种钩子函数?具体是什么及执行流程是怎样的?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-2)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-2)核心答案:**
 
 路由钩子的执行流程, 钩子函数种类有:全局守卫、路由守卫、组件守卫
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#完整的导航解析流程)完整的导航解析流程:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#完整的导航解析流程)完整的导航解析流程:**
 
 - ①导航被触发。
 - ②在失活的组件里调用 `beforeRouteLeave` 守卫。
@@ -534,7 +548,7 @@ Vue.use = function (plugin: Function | Object) {
 
 ## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#_3-vue-router两种模式的区别？)18.`vue-router`两种模式的区别？
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-3)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-3)核心答案:**
 
 hash模式、history模式
 
@@ -543,9 +557,9 @@ hash模式、history模式
 
 ## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#_4-函数式组件的优势及原理)19.函数式组件的优势及原理
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-4)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-4)核心答案:**
 
-函数式组件的特性,无状态、无生命周期、无this
+函数式组件的特性,无状态、无生命周期、无this，它减少的对生命钩子的安装以及对state进行初始化，而是返回实例
 
 ```js
 if (isTrue(Ctor.options.functional)) { // 带有functional的属性的就是函数式组件
@@ -561,7 +575,7 @@ installComponentHooks(data) // 安装组件相关钩子 （函数式组件没有
 
 ## 20.`v-if`与`v-for`的优先级
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-5)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-5)核心答案:**
 
 v-for和v-if不要在同一个标签中使用,因为解析时先解析v-for在解析v-if。如果遇到需要同时使用时可以考虑写成计算属性的方式。
 
@@ -579,9 +593,23 @@ if (el.staticRoot && !el.staticProcessed) {
 
 > 源码位置: **`src/compiler/codegen/index.js:55`**
 
+其实：
+
+**v-for**
+
+```
+v-for== _l(arr,function(){return xxx})
+```
+
+**v-if**
+
+```
+v-if == flag ? xxx: _e()
+```
+
 ## 21.组件中写name选项又哪些好处及作用?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-6)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-6)核心答案:**
 
 - 可以通过名字找到对应的组件 (递归组件)
 - 可用通过name属性实现缓存功能 (keep-alive)
@@ -599,7 +627,7 @@ Vue.extend = function(){
 
 ## 22.`Vue`事件修饰符有哪些？其实现原理是什么?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-7)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-7)核心答案:**
 
 事件修饰符有：.capture、.once、.passive 、.stop、.self、.prevent、
 
@@ -678,9 +706,9 @@ for (name in on) {
 
 ## 23.`Vue.directive`源码实现?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-8)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-8)核心答案:**
 
-把定义的内容进行格式化挂载到`Vue.options`属性上
+把定义的内容进行格式化挂载到`Vue.options`属性上，默认是将触发函数绑定到指令的bind，update的生命周期上
 
 ```js
 ASSET_TYPES.forEach(type => {
@@ -705,7 +733,7 @@ ASSET_TYPES.forEach(type => {
 
 ## 24.如何理解自定义指令?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-9)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-9)核心答案:**
 
 指令的实现原理，可以从编译原理=>代码生成=>指令钩子实现进行概述
 
@@ -867,30 +895,30 @@ function _update (oldVnode, vnode) {
 
 ## 25.谈一下你对`vuex`的个人理解
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-10)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-10)核心答案:**
 
 `vuex`是专门为vue提供的全局状态管理系统，用于多个组件中数据共享、数据缓存等。（无法持久化、内部核心原理是通过创造一个全局实例 `new Vue`）
 
 - 衍生的问题`action`和`mutation`的区别
 - 核心方法: `replaceState`、`subscribe`、`registerModule`、`namespace(modules)`
 
-## 11.`Vue`中slot是如何实现的？什么时候用它?
+## 26.`Vue`中插槽是如何实现的？什么时候用它?
 
-### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-11)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-11)核心答案:**
 
-普通插槽（模板传入到组件中，数据采用父组件数据）和作用域插槽（在父组件中访问子组件数据）
+普通插槽【虚拟节点】（模板传入到组件中，数据采用父组件数据）和作用域插槽【是一个函数】（在父组件中访问子组件数据）
 
-普通插槽是在父组件中被渲染之后替换子组件的内容，作用域插槽在父组件渲染成一个函数，在codegen调用函数生成codegen代码，之后在渲染成内容，作用域插槽渲染内容时在子组件内部。
+普通插槽是在父组件中渲染完成虚拟节点，而在子组件的我们可以用`_t`从this.$slots中获取到子组件slot对应于父组件上的渲染好的虚拟节点**做替换**。作用域插槽在父组件渲染成一个函数，在codegen调用函数生成codegen代码，之后渲染时候通过`scopedSlotFn`调用函数在渲染成内容，作用域插槽渲染内容时在子组件内部。
 
-## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#_12-keep-alive平时在哪使用？原理是)12.`keep-alive`平时在哪使用？原理是?
+## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#_12-keep-alive平时在哪使用？原理是)27.`keep-alive`平时在哪使用？原理是?
 
-`keep-alive`主要是缓存，采用的是`LRU`算法。 最近最久未使用法。缓存的是虚拟dom，当我们访问的缓存的组件，就会直接从vnode上取出`$el`去挂载，跳转重新渲染流程
+`keep-alive`主要是缓存，采用的是`LRU`算法（最近最久使用法）。缓存的是虚拟dom，当我们访问的缓存的组件，就会直接从vnode上取出`$el`去挂载，跳转重新渲染流程
 
 > 原理地址：`src/core/components/keep-alive.js`
 
-## 13.$refs是如何实现的?
+## 28.$refs是如何实现的?
 
-#### [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-12)核心答案:
+**[#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#核心答案-12)核心答案:**
 
 将真实DOM或者组件实例挂载在当前实例的$refs属性上
 
@@ -923,7 +951,7 @@ export function registerRef (vnode: VNodeWithData, isRemoval: ?boolean) {
 }
 ```
 
-## 15.`vue`中使用了哪些设计模式?
+## 29.`vue`中使用了哪些设计模式?
 
 - 工厂模式 - 传入参数即可创建实例 (`createElement`)
 
@@ -1037,7 +1065,7 @@ function mergeField (key) {
 
 - 外观模式、适配器模式、迭代器模式、模板方法模式 .....
 
-## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#_15-谈谈vue3和vue2的区别)16.谈谈`Vue3`和`Vue2`的区别?
+## [#](http://www.zhufengpeixun.com/jg-vue/vue-apply/interview-2.html#_15-谈谈vue3和vue2的区别)30.谈谈`Vue3`和`Vue2`的区别?
 
 - 对`TypeScript`支持不友好（所有属性都放在了this对象上，难以推倒组件的数据类型）
 - 大量的`API`挂载在Vue对象的原型上，难以实现`TreeShaking`。
@@ -1045,61 +1073,217 @@ function mergeField (key) {
 - `CompositionAPI`。受`ReactHook`启发
 - 对虚拟DOM进行了重写、对模板的编译进行了优化操作...
 
-### 17.vue-router有几种钩子函数，具体执行流程是怎么样的？
-
-钩子函数的种类有：全局守卫，路由守卫，组件守卫
-
-* 导航被触发
-* 在失活的组件里调用`beforeRouteLeave`守卫
-* 调用全局的`beforeEach`守卫
-* 在重用的组件里调用`beforeRouteUpdate`守卫（2.2+）
-* 在路由配置里调用`beforeEnter`
-* 解析异步路由组件
-* 在被激活的组件里调用`beforeRouteEnter`
-* 调用全局的`beforeResolve`守卫（2.5+）
-* 导航被确认
-* 调用全局的`afterEach`钩子
-* 触发DOM更新
-* 调用`beforeRouteEnter`守卫中传给`next`的回调函数，创建好的组件实例会作为回调函数的参数传入
-
-```js
-const queue: Array<?NavigationGuard> = [].concat(
-    // in-component leave guards
-    extractLeaveGuards(deactivated), // 离开钩子
-    // global before hooks
-    this.router.beforeHooks, // 全局before钩子
-    // in-component update hooks
-    extractUpdateHooks(updated), // 更新钩子 beforeRouteUpdate
-    // in-config enter guards
-    activated.map(m => m.beforeEnter), // beforeEnter钩子
-    // async components
-    resolveAsyncComponents(activated) // 异步组件 )
-    runQueue(queue, iterator, () => {
-    // wait until async components are resolved before
-    // extracting in-component enter guards
-    const enterGuards = extractEnterGuards(activated) //
-    beforeRouteEnter
-    const queue = enterGuards.concat(this.router.resolveHooks) //
-    beforeResolve
-    runQueue(queue, iterator, () => {})
-})
-}
-```
-
-### 18.Vue-Router的两种模式的区别
+## 31.Vue-Router的两种模式的区别
 
 * `Vue-Router`有三种模式：`hash`，`history`，`abstract`
 * `abstract`模式是在不支持浏览器`API`环境使用，不依赖于浏览器历史
 * `hash`模式：`hash`+`popState/hashChange`兼容性好但不够美观，`hash`服务端无法获取，不利于`seo`优化
 * `history`模式：`historyApi`+`popState`，优点是美观，但每次刷新会往服务器发送请求，会出现404页面
 
-### 19.谈一下你对`veux`的个人理解
+##32.谈一下你对`veux`的个人理解
 
 vuex是专门为vue提供的全局状态管理系统，用于多个组件中数据共享、数据缓存等。（无法持久化，内部核心原理是通过创建一个全局实例`new Vue`）
 
 > 方法：`replaceState`、`subscribe`、`registerModule`、`namespace(modules)`、辅助函数
 
-### 20.mutation 和 action的区别
+* 从它的安装上来说：
+
+```js
+export let Vue;
+function install(_Vue) {
+    Vue = _Vue;
+    Vue.mixin({
+        beforeCreate(){ //this代表的是每个组件实例
+            // 获取根组件上的store 将他共享给每个组件
+            // 每个组件中都应该有$store
+            let options= this.$options;
+            if(options.store){
+                // 根
+                // console.log('根',options.name)
+                this.$store = options.store
+            }else{
+                // 先保证他是一个子组件，并且父亲上有$store
+                if(this.$parent && this.$parent.$store){
+                    this.$store = this.$parent.$store
+                }
+            }
+        }
+    })
+} 
+// 父  this.$store -》 子 this.$store -》孙子 this.$store
+export default install
+```
+
+> 它是采用了Vue.mixins全局混入根组件的`options.store`并且给每一个组件实例上赋值`this.$store`属性，而子组件是通过去父级的查找`$store`属性在将其赋值到自己身上，这样子每个组件都能通过`this.$store`来访问我们注入根组件的store实例
+
+* 从个module的安装在到modulecollection的组成上看
+
+> 它通过`ModuleCollection`类去创建`module`，每个module的格式都是
+>
+> ```js
+> {
+>     _raw:rawModule,
+>     _children:{},
+>     state:rawModule.state,
+>     mutations:rawModule.mutations,
+>     modules:rawModule.modules
+>     .....
+> }
+> ```
+>
+> 将它们组装成一个`moduleCollection`类
+>
+> ```js
+> this.root = {
+>     _raw: 用户定义的模块,
+>     state: 当前模块自己的状态,
+>     _children: { // 孩子列表
+>         a: {
+>             _raw: 用户定义的模块,
+>             state: 当前模块自己的状态,
+>             _children: { // 孩子列表
+>                 e: {}
+>             }
+>         },
+>         c: {
+> 
+>         }
+>     }
+> 
+> }
+> ```
+>
+> 它们module是如何建立父子关系的呢？
+>
+> > 可以通过数组，[]，通过数组的将数组[].slice(0,-1).reduce(,this.root)找出它的父module，在将其注入到父module的_children属性上。
+
+* 从组成moduleCollection组成到store的安装模块上看
+
+> 如果模块上有`namespace`的标识，我们就的开启一个命名空间，所谓的命名看见不过就是在注册module的`mutations`,`actions`，`getters`等要加上模块名。为什么要加命名标识呢，因为最后他们这三个属性各自组成一个对象放在一起。**state的安装时直接放入对象**
+
+```js
+{
+    mutations: {changeAge: Array(1), a/changeAge: Array(1), a/c/changeAge: Array(1)},
+    wrapperGetters: {myAge: ƒ, a/myAge: ƒ},
+     state:{age:10,a:{age:10}} // a为模块名
+}
+```
+
+* 注意:`this._subscribes = [];`存放我们在`this.subscribe(fn)`定义的fn，并且它是与我们的mutations触发挂钩
+
+```js
+module.forEachMutation((fn, key) => { // {myAge:[fn,fn]}
+    store.mutations[ns + key] = store.mutations[ns + key] || [];
+    store.mutations[ns + key].push((payload) => {
+
+        store._withCommittting(() => {
+            fn.call(store, getNewState(store, path), payload); // 先调用mutation 在执行subscirbe
+        })
+
+        store._subscribes.forEach(fn => fn({ type: ns + key, payload }, store.state));
+    })
+});
+```
+
+* 从辅助函数上看，辅助函数只是将我们传入给函数的值，作为key的名，从$store的对象找出来，并赋值到一个`{}`，在`return `
+* 从更改state的操作上，都是同步操作，用`_withCommittting`内部的标识，是false就执行，执行中为true，执行完在改为false,否则就报错
+
+##33谈谈你对vue-route的理解
+
+* 从路由的模式上看
+
+> 主要分为`hash`、`history`
+>
+> hash：hash+hashchange 配合来响应我们切换路由，并且hash刷新不存在的页面会报404，但它不美观
+>
+> history：historyApi+popstate 配合来显示我们切换路由，但其刷新不存在的路由会报404
+
+* 从路由插件的安装上看
+
+> 它采用的是`Vue.mixin()`全局混入的方式向每个组件实例上注入我们传入给根组件的`VueRouter`实例化的实例，并且只在根组件进行路由初始化` this._router.init(this);`，在install中还定义了三个响应式对象，和全局创建两个组件
+>
+> this._route是为了我们路由变化，也就是current值变了的话，让我们的页面做出响应式做出渲染
+>
+> ```js
+>  Vue.util.defineReactive(this,'_route',this._router.history.current);
+> Object.defineProperty(Vue.prototype,'$router',{ // 方法
+>     get(){
+>         return this._routerRoot._router
+>     }
+> })
+> Object.defineProperty(Vue.prototype,'$route',{ // 属性
+>     get(){
+>         return this._routerRoot._route
+>     }
+> });
+> Vue.component('router-link',RouterLink)
+> Vue.component('router-view',RouterView)
+> ```
+
+* 从创建路由映射上看`  this.matcher = createMatcher(options.routes || []);`
+
+```js
+// 每个路由的结构
+let record = { // 最终路径 会匹配到这个记录,里面可以自定义属性等
+    path,
+    component: route.component, // 组件
+    props: route.props || {},
+    parent
+}
+// 将我们在VueRouter上创建的路由匹配规则
+let router = new VueRouter({
+   routes:[
+     	{path:'/',componemnt:Home},
+  		{path:'/about',component:About,children:[
+        {path:'a',compoennt:AboutA},
+        {path:'b',component:AboutB}
+      ]}
+   ]
+})
+// 格式化为
+pathMap = {
+   '/':         {path:'/',component:Home,parent:undefined},
+	'/about':   {path:'/about',component:About,parent:undefined},
+	'/about/a': {path:'/about/a',component:AboutA,parent:{/about对象的数据}},
+	'/about/b': {path:'/about/b',component:AboutB,parent:{/about对象的数据}}
+}
+```
+
+匹配路由时：会去重新创建新的匹配路由
+
+```js
+function createRoute(record, location) { // 创建路由
+    const matched = [];
+    // 不停的去父级查找
+    if (record) {
+        while (record) {
+            matched.unshift(record);
+            record = record.parent;
+        } // /about/a => [/about,/about/a]
+    }
+    return {
+        ...location,
+        matched
+    }
+}
+```
+
+然后返回的格式如下，方便我们在view组件匹配路由的时候匹配
+
+```js
+let obj = {
+    location:'/about/a',
+    matched:['/about','/about/a']
+}
+```
+
+* 从`link`与`view`组件上看
+
+> 两者都是函数式组件，没有自己的状态，link可以说一个a标签，渲染的值我们可以去slot插槽中获取，`view`组件的匹配规则值得一说
+
+view的渲染规则：从组件`parent.$route`获取到新的路由匹配，然后通过`parent.$vnode && parent.$vnode.data.routerView`判断当前渲染的`view`组件位于第几层渲染路由，累加`depth`，在通过depth从`route.matched[depth]`获取到对应的路由组件渲染
+
+##34.mutation 和 action的区别
 
 * mutation：主要在于修改状态，必须同步执行
 * action：执行业务代码、方便复用，逻辑可以为异步，不能直接修改状态
@@ -1117,7 +1301,7 @@ function enableStrictMode (store) {
     }, { deep: true, sync: true }); // 同步watcher监控状态变化 }
 ```
 
-### 21.vue中的性能优化有哪些？
+## 35.vue中的性能优化有哪些？
 
 * 数据层级不易过深，合理设置响应式数据
 * 使用数据时缓存值的结果，不频繁取值
@@ -1130,7 +1314,7 @@ function enableStrictMode (store) {
 * 虚拟滚动，时间分片等策略
 * 打包优化
 
-### 22.Vue中使用了那些设计模式
+##36.Vue中使用了那些设计模式
 
 * **单例模式** - 单例模式就是整个程序有且仅有一个实例
 

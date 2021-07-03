@@ -72,7 +72,7 @@ const 声明变量的同时必须要赋值，const声明之后，不允许去修
 
 #### 2.1数组的解构
 
-ES6 允许按照一定模式，从数组和对象中提取值，对遍历进行赋值。这被称为解构
+ES6 允许按照一定模式，从数组和对象中提取值，对变量进行赋值。这被称为解构
 
 * 完全解构，将数组中的每一个值对应上相应的变量
 
@@ -123,12 +123,12 @@ Array.from 方法是用于将两类对象转为真正数组：类似数组的对
 
 ```js
 var arraylike = {
-    0:'a',
-    1:'b',
-    c:'d',
-    length:3
+    0: 'a',
+    1: 'b',
+    2: 'd',
+    length: 3
 }
-var arr =Array.from(arraylike)
+var arr = Array.from(arraylike)
 // ["a","b","d"]
 ```
 
@@ -342,7 +342,7 @@ console.log(source) // {a:123}
 
 * Object.is()
 
-`Object.is`就是用来比较两个值是否严格相等，与严格比较运算符（===）的行为一致。ES5 比较乐观值是否相等，只有两个运算符：相等运算符(`===`)和严格相等运算符(`===`).它们都有缺点，前者会自动转换数据类型，后者的`NAN`不等于自身，以及`+0`等于`-0`。JavaScript缺乏一种运算，在所有环境中，只要两个值是一样的，它们就应该相等
+`Object.is`就是用来比较两个值是否严格相等，与严格比较运算符（===）的行为一致。ES5 比较值是否相等，只有两个运算符：相等运算符(`==`)和严格相等运算符(`===`).它们都有缺点，前者会自动转换数据类型，后者的`NAN`不等于自身，以及`+0`等于`-0`。JavaScript缺乏一种运算，在所有环境中，只要两个值是一样的，它们就应该相等
 
 ```js
 console.log(Object.is(+0, -0)); //false
@@ -381,13 +381,13 @@ console.log(['hello'])
 ```js
 var name = "laogou"
 var work = "web"
-function tag(st,a,b) {
-    console.log(st)
+function tag(art,a,b) {
+    console.log(art)
     console.log(a)
     console.log(b)
     return "hello lagou"
 }
-var st = tag`hello ${name} ,z职业${work}开发`
+var st = tag`hello ${name} ,职业${work}开发`
 console.log(st) // hello lagou
 ['hello',",职业","开发"，raw：Array(3)]
 laogou
@@ -457,7 +457,7 @@ fn("hello"); // hello lagou
 
 * 参数默认值的位置
 
-  通常情况下，定义了默认值的参数，应该是函数的尾参数。因为这样比较容易看出来，到底省略了哪些参数，如果非尾部的参数设置默认值，实际上中国参数是没法省略的
+  通常情况下，定义了默认值的参数，应该是函数的尾参数。因为这样比较容易看出来，到底省略了哪些参数，如果非尾部的参数设置默认值，实际上参数是没法省略的，若调用不传入参数就会报错
 
 ```js
 function f(x=1,y) {
@@ -672,7 +672,7 @@ console.log((personProxy.name = "lagou"));
 person; //{name:"lagou",age:20}
 ```
 
-在Proxy没出来之前前端是采用`defineProperty`来进行数据监听,但这种劫持要一个一个手动添加并不像Proxy方便，性能也没	Proxy好
+在Proxy没出来之前前端是采用`defineProperty`来进行数据监听,但这种劫持要一个一个手动添加并不像Proxy方便，性能也没`Proxy`好
 
 ```js
 let data = {
@@ -783,7 +783,7 @@ Reflect.has(Object,"assign") // true
 
 * Reflect.set
 
-  * `Reflect.set(target,value,receiver)`,`Reflect.set`方法设置`target`对象的`name`属性等于`value`
+  * `Reflect.set(target,value,receiver)`,`Reflect.set`方法设置`target`对象的`name`属性等于`receiver`
 
     ```js
     var myObject = {
@@ -1016,7 +1016,7 @@ Bar.classMethod() // 'hello'
 
 * 静态属性
 
-  静态属性指的是 Class 本身的属性，即`class.propName`,而不是定义在实例对象(`this`)上的属性，ES6 明确规定，Class内部只有静态方法，没有静态属性，想在有一个[提案](https://github.com/tc39/proposal-class-fields)提供了类的静态属性，写法是在实例属性的前面，加上`static`关键字
+  静态属性指的是 Class 本身的属性，即`class.propName`,而不是定义在实例对象(`this`)上的属性，ES6 明确规定，Class内部只有静态方法，没有静态属性，现在有一个[提案](https://github.com/tc39/proposal-class-fields)提供了类的静态属性，写法是在实例属性的前面，加上`static`关键字
 
   ```js
   class MyClass {
@@ -1149,7 +1149,7 @@ Bar.classMethod() // 'hello'
 
 * ES6 提供了新的数据结构`Set`,它类似于数组，**但是成员的值都是唯一的，没有重复的值**
 * `Set`本身也是一个构造函数，用来生成 Set 数据结构
-* `Set`函数可以接受一个数组(或者具有  **iterable**接口的其他数据结构)作为参赛，用来初始化
+* `Set`函数可以接受一个数组(或者具有  **iterable**接口的其他数据结构)作为参数，用来初始化
 
 ```js
 const set = new Set([1,2,3,4,4])
@@ -1228,8 +1228,8 @@ console.log(set) // [1,2,3,4]
     * `Set.prototype.forEach()`
 
     ```js
-    let set = new Set([1,4,9])
-    set.forEach(value,key) =>console.log(key + ":" + value)
+    let set = new Set([1, 4, 9])
+    set.forEach((value, key) => console.log(value + ":" + key))
     // 1:1
     // 4:4
     // 9:9
@@ -1414,9 +1414,9 @@ let sym = Symbol("my symbol")
 ```js
 const mySymbol = Symbol()
 const a = {}
-a.mySymbol = "Hello !"
-console.log(a[mySymbol]) // undefined
-console.log(a['mySymbil']) // Hello!
+a[mySymbol] = "Hello !"
+console.log(a['mySymbol']) // undefined
+console.log(a[mySymbol]) // Hello!
 ```
 
 * Symbol 作为属性名，遍历对象的时候，改属性不会出现在`for...in`、`for...of`循环中，也不会被`Object.keys()`、`Object.getOwnPropertyNames()`、`Json.stringify()`f返回，但是它也不是私有属性，有一个`Object.getOwnPropertySymbols()`方法，可以获取指定对象的所有Symbol 属性名，该方法返回一个数组，成员是当前对象的所有用作属性名的 Symbol 值
@@ -1532,7 +1532,7 @@ for (const [key, value] of m) {
 
   * 不断调用指针对象的`next`方法，直到它指向数据结构的结束位置
 
-    每一次调用`next`方法，都会返回数据结构的当钱成员的信息，具体来说，就是返回一个包含`value`和`done`两个属性的对象。其中，`value`属性是当前成员的值，`done`属性是一个布尔值，表示遍历是否结束
+    每一次调用`next`方法，都会返回数据结构的当前成员的信息，具体来说，就是返回一个包含`value`和`done`两个属性的对象。其中，`value`属性是当前成员的值，`done`属性是一个布尔值，表示遍历是否结束
 
   ```js
   // 简单的 Iterator 遍历器的实现

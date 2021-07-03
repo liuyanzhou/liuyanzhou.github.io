@@ -41,14 +41,14 @@ tags:
 
 ### 2.1父项常见属性
 
-| 属性值名        | 描述                                                    |
-| --------------- | ------------------------------------------------------- |
-| flex-direction  | 设置主轴的方向                                          |
-| justify-content | 设置主轴上的子元素排列方式                              |
-| flex-wrap       | 设置子元素是否换行                                      |
-| align-content   | 设置侧轴上的子元素的排列方式`(多行)`                    |
-| align-items     | 设置侧轴上的子元素排列方式`(单行)`                      |
-| flex-flow       | 复合属性，相当于同时设置了`flex-direction`和`flex-wrap` |
+| 属性值名        | 描述                                                         |
+| --------------- | ------------------------------------------------------------ |
+| flex-direction  | 设置主轴的方向                                               |
+| justify-content | 设置主轴上的子元素排列方式                                   |
+| flex-wrap       | 设置子元素是否换行                                           |
+| align-content   | 设置侧轴上的子元素的排列方式`(多行)`                         |
+| align-items     | 设置侧轴上的子元素排列方式`(单行)`                           |
+| flex-flow       | 复合属性，相当于同时设置了`flex-direction`和`flex-wrap`,取值可以是`flex-flow:row wrap` |
 
 #### 2.1.1  flex-direction设置主轴的方向
 
@@ -296,8 +296,6 @@ align-content 属性值：
 </body>
 ```
 
-
-
 #### 2.1.6 align-content 和align-items区别
 
 - align-items  适用于单行情况下， 只有上对齐、下对齐、居中和 拉伸
@@ -344,21 +342,170 @@ align-content 属性值：
 
 ### 2.2 子项常见属性
 
-| 属性名     | 描述                           |
-| ---------- | ------------------------------ |
-| flex       | 子项目占的份数                 |
-| align-self | 控制子项自己在侧轴的排列方式   |
-| order      | 定义子项的排列顺序（前后顺序） |
+| 属性名      | 描述                                                         |
+| ----------- | ------------------------------------------------------------ |
+| align-self  | 控制子项自己在侧轴的排列方式                                 |
+| order       | 定义子项的排列顺序（前后顺序）                               |
+| flex        | 子项目占的份数                                               |
+| flex-grow   | 用于设置或检索弹性盒子的扩展比率                             |
+| flex-shrink | 用于指定`flex`元素的收缩规则，`flex`元素仅在默认宽度之和大于容器的时候才会发生收缩，其收缩大小是依据`flex-shrink`的值 |
+| flex-basis  | 用于设置或检索弹性盒伸缩基准值                               |
 
-#### 2.2.1 flex属性
+#### 2.2.1 order 属性定义项目的排列顺序
 
-> flex 属性定义子项目分配剩余空间，用flex来表示占多少份数。
+> 数值越小，排列越靠前，默认为0。
+>
+> 注意：和 z-index 不一样。
 
 语法:
 
 ```css
 .item {
-    flex: <number>; /* 默认值 0 */
+    order: <number>;
+}
+```
+
+代码演示:
+
+```html
+<style>
+    div {
+        display: flex;
+        width: 80%;
+        height: 300px;
+        background-color: pink;
+        /* 让三个子盒子沿着侧轴底侧对齐 */
+        /* align-items: flex-end; */
+        /* 我们想只让3号盒子下来底侧 */
+    }
+
+    div span {
+        width: 150px;
+        height: 100px;
+        background-color: purple;
+        margin-right: 5px;
+    }
+
+    div span:nth-child(2) {
+        /* 默认是0   -1比0小所以在前面 */
+        order: -1;
+    }
+</style>
+<body>
+    <div>
+        <span>1</span>
+        <span>2</span>
+        <span>3</span>
+    </div>
+</body>
+```
+
+#### 2.2.2 flex-grow
+
+> `flex-grow`属性定义项目的放大比例，默认是`0`，即如果存在剩余空间，也不放大。如果所有项目`flex-grow`属性都为`1`，则它们将等分剩余空间（如果有的话）。如果一个项目的`flex-grow`属性为`2`，其他项目都为`1`，则前者占据的剩余空间将比其他项目多一倍，**前提该项目是弹性伸缩盒子**
+
+![flex-grow](/medias/imges/mobile/flex/flex-grow.jpg)
+
+```css
+.item {
+    flex-grow:<number> /* default:0 */
+}
+```
+
+#### 2.2.3 flex-shrink
+
+> `flex-shrink`属性定义了项目的缩小比例，默认为`1`，即如果空间不足，该项目将缩小，**前提该项目是弹性伸缩盒子**
+
+![flex-shrink](/medias/imges/mobile/flex/flex-shrink.jpg)
+
+```css
+.item {
+    flex-shrink:<number> /* default 1 */
+}
+```
+
+如果所有项目的`flex-shrink`属性都为`1`，当空间不足时，都将等比例缩小。如果一个项目的`flex-shrink`属性为`0`，其他项目都为`1`，则空间不足时，前者不缩小。负值对该属性无效。
+
+#### 2.2.4 flex-basis
+
+> `flex-basis`属性定义了在分配多余空间之前，项目占据的主轴空间（main size）。浏览器根据这个属性，计算主轴是否有多余空间。
+>
+> * 它的默认值为`auto`，即项目的宽度/高度初始值是根据我们设置的`width/height`的决定，
+> * 当它的为`auto`，但我们未设置`width/height`时，项目的宽高初始值都为`0`
+>
+> https://www.jianshu.com/p/7827e7ecfd64
+
+```css
+.item {
+    flex-basis: <length> | auto /* default : auto */
+}
+```
+
+比如：
+
+```html
+<style>
+    .parent {
+        width: 400px;
+        display: flex;
+        height: 100px;
+    }
+    /* 剩余空间 400 - 50 = 350px  */
+
+    .child1 {
+        /* flex-basis:0 */
+        width: 200px;
+        flex-shrink: 1;
+        flex-grow: 1;
+        flex-basis:0;
+        background: red;
+        /* 0 + 87.5 */
+    }
+
+    .child2 {
+        width: 300px;
+        flex-shrink: 1;
+        flex-grow: 2;
+        flex-basis: 50px;
+        background: gray;
+        /* 50 + 175 = 225 */
+    }
+
+    .child3 {
+        flex-shrink: 1;
+        flex-grow: 1;
+        background: green;
+        /* 87.5 */
+    }
+</style>
+<body>
+    <div class="parent">
+        <div class="child1"></div>
+        <div class="child2"></div>
+        <div class="child3"></div>
+    </div>
+</body>
+```
+
+> * 当child1，child2，child3的宽度初始值分配好，父容器的剩余空间为`400-50 =350px`
+> * child1：由于`flex-basis:0`，所以即使`width=200px`，其`width`的初始值也是`0`
+> * child2：由于`flex-basis:50px`，即使设置`wdith=300px`也不起作用，故其的`width`的初始值为`50px`
+> * child3：由于`flex-basis:auto`，但未设置`width`值，故其`width`初始值为`0`
+>
+> 最终child1，child2，child3的宽度是由它们以上的初始宽度 + 其所占剩余宽度的百分比(`flex-grow`)，例如`child1`占`1/(1+2+1)`
+
+#### 2.2.5 flex属性
+
+> * flex属性是定义子项目分配剩余空间，用flex来表示占多少份数，并且其也是`flex-grow,flex-shrink,flex-basis`的简写，默认值为`0 1 auto`。后两个属性可选
+> * `flex:none;`代表的意思等同于`flex:0 0 auto`
+> * `flex:auto`代表的元素是`flex:1 1 auto`
+> * flex：number;当`flex`取值为一个非负数字，则该数字为`flex-grow`的值，`flex-shrink`的值为`1`，`flex-basis`的值为`0%`
+
+语法:
+
+```css
+.item {
+    flex: none | [<flex-grow> <flex-shrink> <flex-basis>]
 }
 ```
 
@@ -422,11 +569,13 @@ align-content 属性值：
 </body>
 ```
 
-#### 2.2.2 align-self 控制子项自己在侧轴上的排列方式
+#### 2.2.6 align-self 控制子项自己在侧轴上的排列方式
 
 align-self 属性允许单个项目有与其他项目不一样的对齐方式，可覆盖 align-items 属性。
 
 默认值为 auto，表示继承父元素的 align-items 属性，如果没有父元素，则等同于 stretch。
+
+![flex-shrink](/medias/imges/mobile/flex/align-self.jpg)
 
 | 属性值名   | 描述                                       |
 | ---------- | ------------------------------------------ |
@@ -465,53 +614,3 @@ align-self 属性允许单个项目有与其他项目不一样的对齐方式，
     </div>
 </body>
 ```
-
-#### 2.2.3 order 属性定义项目的排列顺序
-
-> 数值越小，排列越靠前，默认为0。
->
-> 注意：和 z-index 不一样。
-
-语法:
-
-```css
-.item {
-    order: <number>;
-}
-```
-
-代码演示:
-
-```html
-<style>
-    div {
-        display: flex;
-        width: 80%;
-        height: 300px;
-        background-color: pink;
-        /* 让三个子盒子沿着侧轴底侧对齐 */
-        /* align-items: flex-end; */
-        /* 我们想只让3号盒子下来底侧 */
-    }
-
-    div span {
-        width: 150px;
-        height: 100px;
-        background-color: purple;
-        margin-right: 5px;
-    }
-
-    div span:nth-child(2) {
-        /* 默认是0   -1比0小所以在前面 */
-        order: -1;
-    }
-</style>
-<body>
-    <div>
-        <span>1</span>
-        <span>2</span>
-        <span>3</span>
-    </div>
-</body>
-```
-
