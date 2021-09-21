@@ -86,13 +86,11 @@ let n=10;
 // n+{} --> '10[Object object]' 字符串拼接，这里的{}调用了toString,规则如case3
 ```
 
-case3: 不是所有对象都是字符串拼接
+case3: 对象进行字符串拼接，规则如下
 
-> 规则：
->
 > * 先去调用对象的 `Symbol.toPrimitive` 方法获取属性值，如果没有则进行下一步
-> * 在去调用对象的 `valueOf()`获取原始值，如果不是原始值类型，进行下一步
-> * 在去调用对象的`toString()`转换为字符串，如果是进行数字原始，还可能调用Number进行隐式转换
+>* 在去调用对象的 `valueOf()`获取原始值，如果不是原始值类型，进行下一步【valueOf是实例原型上的方法】
+> * 在去调用对象的`toString()`转换为字符串，如果是进行数字原始，还可能调用Number进行隐式转换 【toString是实例原型上的方法】
 
 ```js
 console.log(10+[10,20]); // -> 1010,20
@@ -108,6 +106,21 @@ let result = 100 + true + 21.2 + null + undefined + "Tencent" + [] + null + 9 + 
 // NAN + "Tencent" + [] + null + 9 + false;
 // NaNTencentnull9false 
 console.log(result);
+```
+
+由此我们可以在对象转化的过程中能对数据进行修改
+
+```js
+const object1 = {
+  [Symbol.toPrimitive](hint) {
+    if (hint === 'number') {
+      return 42;
+    }
+    return null;
+  }
+};
+
+console.log(+object1); // 42 
 ```
 
 * 把其他类型转换为数字
@@ -133,7 +146,7 @@ console.log(result);
 > console.log(parseInt(0xA)); // 10
 >   ```
 >   
->   * 如果`[radix]`不在`2~36`之间，处理`radix=0`，结果都是`NaN`
+>   * 如果`[radix]`不在`2~36`之间，比如`radix=1`，结果都是`NaN`，但0是一个特列
 >   * 扫盲1：2进制 -> `0~1`，8进制 -> `0~7`，16进制 -> `0-15`
 >   * 扫盲2 ：把其他进制转换为10进制如何处理？
 >   
@@ -220,17 +233,162 @@ if (a == 1 && a == 2 && a == 3) {
 
 #### JS的数据类型检测
 
-* `typeof` ：返回一个字符串，其次字符串中包含对应的数据类型
+* `typeof` ：返回一个字符串，其次字符串中包含对应的数据类型（`number|string|boolean|function|undefied|object`）
+* `typeof`检验数据类型，除特殊对象【函数】返回`function`，其余都是`object`，因为函数是做了特殊处理的对象类型
+
+实例：
+
+```js
+typeof typeof typeof [10,20]  // => string 因为第一个typeof 就返回字符串`array`，接下来的typeof都是在检测字符串,故返回的结果都是`string`
+typeof null // => object
+```
 
 ##### typeof的检测机制
 
-> `typeof`检测数据类型的底层机制：所有数据类型在计算机中都是按照二进制存储的，可分为：
+> `typeof`检测数据类型的底层机制：所有数据类型在计算机中都是按照二进制存储的【根据IEEE-754规范使用64位二进制存储的】，可分为：
 >
-> 整数：`1`开头，浮点：`010`开头，字符串：`100`开头，对象：`000`开头，undefined的值为`-2^30`，null的值为`000000(6个零)`，那么`typeof`底层机制就是判断这些二进制值，如果是以`000`开始的，都是对象类型`“object”`（特殊性：内部排除函数），但是`null`也是以`000`开头的，因此`null`中枪了，所以`typeof null == "object"`
+> 整数：`1`开头，浮点：`010`开头，字符串：`100`开头，对象：`000`开头，undefined的值为`-2^30`，null的值为`000000(6个零)`，那么`typeof`底层机制就是判断这些二进制值，如果是以`000`开始的，都是对象类型`“object”`（特殊性：内部排除函数{通过判断是否能调用`call`方法}），但是`null`也是以`000`开头的，因此`null`中枪了，所以`typeof null == "object"`
 
 缺点：其对对象类型（除函数外）判断不精确
 
 优点：判断机制是根据计算机二进制来，稳定性和性能很好，并且使用起来也很方便
+
+> 详细看**JS内置对象那篇**
+
+##### instanceof 
+
+> 本意是用来检测当前实例对象是否率属于这个类，而是数据类型检测，只不过是我们依托它的这个特点，可以检测数据类型【可以说是，临时拉来充壮丁，所以准确性不好】
+>
+> 原理：【实例对象 obj】instanceof 【构造函数 Ctor】
+>
+> * 检测构造函数是否拥有`Symbol.hasInstance`这个属性，如果有这个属性，则调用`Ctor[Symbol.hasInstance](obj)`得到结果，并且因为`Function.prototype[Symbol.hasInstance]`在`Function.prototype`有，故所以的构造函数都可以调用这个方法
+> * 不论是否基于这个方法处理，最后的本质都是：检测当前实例`obj`的原型链上是否出现`Ctor`构造函数的原型对象【最终找到`Object.prototype`】，如果出现则结果就是`true`，否则就是`false`
+
+`instanceof`不准确的例子：
+
+* 知道arr到底是array还是object，虽然说arr也是object对象，但要区分{}与[]就做不到
+
+```js
+let arr = [10,20]
+console.log(arr instanceof Array); // true
+console.log(arr instanceof RegExp) // false
+console.log(arr instanceof Object) // true
+```
+
+* 我们可以肆意修改原型链指向
+
+```js
+function Fn() {}
+Fn.prototype = Array.prototype;
+let f = new Fn;
+console.log(f instanceof Array) // true 但是f本质上不应该是称为数组，因为不具备数组应有的结构
+```
+
+关于`[Symbol.hasInstance]`
+
+* `ES5`创建构造函数的语法上是不允许我们修改这个属性
+
+```js
+function Fn(){}
+Fn[Symbol.hasInstance] = function(obj) {
+  return false
+}
+let fn = new Fn;
+console.log(fn instanceof Fn) // true
+```
+
+* `ES6`创建构造函数语法上是支持修改的
+
+```js
+class Fn {
+  static [Symbol.hasInstance](obj) {
+    return false
+  }
+}
+let fn = new Fn
+fn.name = 10;
+console.log(fn instanceof Fn) // false
+```
+
+扩展：
+
+```js
+console.log(1 instanceof Number);// false 基于instanceof 进行处理，并不会把原始值进行装箱处理，也就是原始值类型是不具备原生链的，所以`instanceof`是不能处理原始值类型的
+console.lgo(new Number(1) instanceof Number); // true
+```
+
+`instanceof`源码
+
+```js
+function instance_of(obj,Ctor) {
+  let ctorType = typeof Ctor,
+  objType = typeof obj,
+  reg = /^(object|function)$/i,
+  hasInstance,
+  proto;
+    // 校验Ctor是否是一个对象/函数
+    if(Ctor == null || !reg.test(ctorType)) throw new TypeError('Right-hand side of 'instanceof' is not an object')
+    // 校验obj是否一个对象/函数
+    if(obj ==null || !reg.test(objType)) return false;
+    // 校验Ctor是否有prototype
+    if(!Ctor.hasOwnProperty('prototype')) throw new TypeError("Function has non-object prototype 'undefined' in instanceof check")
+    // 正常检测处理
+    hasInstance = Ctor[Symbol.hasInstance];
+    if(hasInstance) return Ctor[Symbol.hasInstance](obj) // hasInstance.call(Ctor,obj);
+    proto = Object.getPrototypeOf(obj);
+    while(proto) {
+      if(proto == Ctor.prototype) return true
+      proto = Object.getPrototypeOf(proto)
+    }
+    return false
+}
+let arr =[10,20]
+console.log(instance_of(arr,Number))
+```
+
+##### constructor
+
+> `constructor`和`instanceof`一样，并不是专业进行数据类型检测的，我们也可以肆意修改原型对象上的`constructor`属性，影响检测准确
+
+```js
+let arr = [10,20],
+num=10;
+console.log(arr.constructor ===Array) // true
+console.log(num.constructor === Number) // true
+
+// 可以修改
+Number.prototype.constructor = Array
+num=10;
+console.log(num.constructor === false) // true
+```
+
+##### Object.prototype.toString.call()
+
+> `Object.prototype.toString.call([value])`是万能检测数据的方法，很准确，注意：
+>
+> * 除了`Object.prototype.toString`是用来检测数据类型的，其余数据类型内置类原型上的`toString`方法，一般都是用来转换字符串的
+>
+> 原理：`obj.toStirng=>object Object`
+>
+> `obj`基于`__proto__`找到`Object.prototype.toString`并且把这个方法执行，`toString`方法中`this`是`obj`，所以检测`obj`的数据类型；只要让`toString`方法执行，方法中的`this`是谁，就是在检测谁的数据类型。=> `Object.prototype.toString.call([value]) | ({}).toString.call([value])`
+>
+> * 返回的结果：`[object 实例[Symbol.toStringTag] / 当前实例所属的构造函数{但自定义构造函数返回的是Object,自己是不可见的}]`，先去读取`[Symbol.toStringTag]`的值
+
+```js
+let class2type = {},
+toString =class2type.toString // Object.prototype.toString
+
+// 检验自定义构造函数实例的数据类型---> 自定义类的结果不见得和内置类的一样
+class Fn{}
+let f = new Fn;
+console.log(toString.call(f)) // [object Object]
+
+class Fn{
+  [Symbol.toStringTag] = 'Fn'
+}
+let f = new Fn;
+console.log(toString.call(f)) // [object Fn]
+```
 
 ### JS中的堆栈
 
@@ -429,7 +587,7 @@ function a() {
 
 #### 块级上下文：
 
-> 在ES6中，除了全局上下文和函数执行的私有上下文，还多了一种上下文机制：**块级私有上下文【作用域】**，在除函数/对象等之外的大括号中【例如：判断体、循环体....】，如果出现`let/const/function`这些关键词任意其中一个，就会产生一个块级上下文；在此块级上下文中，基于`let/const/function`声明的变量都是所有的；
+> 在ES6中，除了全局上下文和函数执行的私有上下文，还多了一种上下文机制：**块级私有上下文【作用域】**，在除函数/对象等之外的大括号中【例如：判断体、循环体....】，如果出现`let/const/function`这些关键词任意其中一个，就会产生一个块级上下文；在此块级上下文中，基于`let/const/function`声明的变量都是私有的；
 >
 > 特殊性：
 >
@@ -810,9 +968,9 @@ document.body.addEventListener('click', function() {
   *   正常的普通函数执行：看函数执行前是否有“点”，有“点”前面是谁this就是谁，没有的话this就是window【严格模式下是undefined】
 
   ```js
-function fn() {
+  function fn() {
       console.log(this)
-}
+  }
   let obj = {
     fn
   };
@@ -825,7 +983,7 @@ function fn() {
     * 函数表达式:等同于普通函数或者事件绑定机制
   
     ```js
-  var fn = function() {
+    var fn = function() {
         console.log(this) // this->window
     }
     fn()
@@ -858,7 +1016,135 @@ function fn() {
   (obj.fn)(); // this -> obj
   (19, obj.fn)(); // this-> window/undefined
   ```
-  
+
+* 构造函数
+
+构造函数实在普通函数执行的基础上，会多创建一个实例对象，并且在初始化`this`时并让这个`this`指向这个实例对象，在函数执行的函数体中`this.xxx`就是往这个实例对象里添加私有属性。
+
+* 箭头函数
+
+箭头函数在普通函数上少了`初始化this/初始化arguments`，其没有自己的this，而在其内部使用的`this`其实就是其上级上下文中的`this`，可以说是继承。
+
+对比箭头函数和普通函数的几大核心区别：
+
+1. 语法区别
+2. THIS区别：箭头函数没有自己的`this`
+3. 原型区别：箭头函数没有`prototype`属性，所以不能被`new`执行
+4. arguments：箭头函数中没有`arguments`实参集合
+
+所以说，我们通过`bind/apply/call`等强行改变箭头函数`this`的指向是没有意义的。
+
+* 基于`call/apply/bind`强行改变`this`指向
+
+接下来我们来进行手撕`call/apply/bind`让我们对其内部更加理解，而在此之前我们要先对它们三者的用法与区别有一定认知
+
+> 我们将`call/apply`能立即执行分为一类，而`bind`并不能立即执行分为一类。
+>
+> * `call/apply`的区别在于执行的时候，传递实参的方式不一样，call是一个一个传递实参，而`apply`需要把实参放在一个数组中传递给函数
+> * `bind`：其是利用闭包思想，预处理函数中的`THIS`指向和参数的
+
+```js
+// 我们要想fn执行时的this是obj
+window.name = 'window';
+const fn = function fn(x, y, ev) {
+    console.log(this.name, x + y, ev);
+    return '@zs';
+};
+let obj = {
+    name: 'obj'
+};
+```
+
+手撕call
+
+> 思路：`obj.fn(10,20)`，我们要想fn执行时的`this`指向obj，那么`obj`这个对象中属性必须要有`fn`。
+
+```js
+Function.prototype.call = function call(context,...params) {
+    // 当context没传或者undefined时，context就指向window
+    if(context == null) context=window;
+    // 传入的context必须是对象类型
+    if (!/^(object|function)$/i.test(typeof context)) context = Object(context);
+	// 怕与context的命名重复，使用Symbol设置唯一值
+    let key = Symbol('KEY');
+    context[key] = this;
+    let result = context[key](...params);
+    // 删除多余的值
+    delete context[key];
+    return result;
+}
+
+// fn.call(obj,10,20)执行的流程：fn通过原型链找到Function.prototype上的call方法，之后执行call；call里面将fn函数的this转换为obj并且执行函数
+let res = fn.call(obj, 10, 20);
+console.log(res);
+```
+
+手撕`apply`
+
+```js
+Function.prototype.apply = function apply(context,params) {
+  if(context == null) context= window;
+  if(!/^(object|function)$/i.test(typeof context)) context=Object(context)
+  if(Object.prototype.toString.call(params) !== '[Object Array]') {
+    throw new TypeError(`${params} is not a array`)
+  }
+  let key = Symbol('KEY');
+  context[key]= this;
+  let result =  context[key](...params)
+  delete context[key];
+  return result
+}
+let res = fn.apply(obj, [10, 20]);
+console.log(res);
+```
+
+手撕`bind`
+
+> 思路是利用闭包/柯里化函数的思想，对context和传递进来的实参进行预处理
+
+```js
+Function.prototype.bind = function bind(context, ...params) {
+    // this:fn  context:obj  params:[10,20]
+    let self = this;
+    return function anonymous(...args) {
+        // args:[ev]
+        params = params.concat(args);
+        return self.call(context, ...params);
+    };
+};
+submit.onclick = fn.bind(obj, 10, 20);
+```
+
+面试题：
+
+```js
+function fn1(){console.log(1);}
+function fn2(){console.log(2);}
+fn1.call(fn2); // 1 
+fn1.call.call(fn2); // 2
+Function.prototype.call(fn1); // 不输出任何
+Function.prototype.call.call(fn1); // 1
+```
+
+```js
+var name = '珠峰培训';
+function A(x,y){
+    var res=x+y;
+    console.log(res,this.name);
+}
+function B(x,y){
+    var res=x-y;
+    console.log(res,this.name);
+}
+B.call(A,40,30); // 10 'A'
+B.call.call.call(A,20,10); // NaN undefined
+Function.prototype.call(A,60,50); // Function.prototype 是个匿名空函数不输出任何
+Function.prototype.call.call.call(A,80,70); // NaN undefined
+```
+
+![call复杂题](/medias/imges/js/jsUp/callApplyBind-review.png)
+
+注意：多个`call`时，比如`Function.prototype.call.call.call(A,80,70);`，最后的结果是让`A`去执行，A执行的内部`this->80`，其余的参数照常传入；一个`call`就正常执行
 
 ### let & const VS var的区别解析
 
@@ -884,7 +1170,7 @@ test(5);
 ```
 
 * 和全局`GO`的关系：全局上下文中，基于`let`声明的变量存储到`VO(G)`中，而基于`var`声明的变量，存储到`GO`中
-* 块级上下文：除函数和对象的`{}`外，如果`{}`中出现`let/const/function`则会产生块级上下文，但`var`却不会产生块级上下文并且块级上下文也对`var`的变量有任何的影响
+* 块级上下文：除函数和对象的`{}`外，如果`{}`中出现`let/const/function`则会产生块级上下文，但`var`却不会产生块级上下文并且块级上下文也对`var`的变量没有任何的影响
 * 暂时性死区：可以说是浏览器的一个`bug`
 
 #### let VS const
@@ -1063,7 +1349,7 @@ box.onclick = function(ev) {
 let box =document.getElementById('#box');
 box.myId=1; // 设置
 console.log(box.myId); // 获取
-// 但其通过`getAttribute`就获取不到
+// 但其通过`getAttribute`就获取不到，并且DOM结构上也不会显示设置的属性，前提设置的属性是在DOM结构上默认不存在的
 ```
 
 * 通过`.setAttribute(属性名,属性值)`设置是往其`DOM`结构设置，并且值一定为字符串
@@ -1476,15 +1762,17 @@ console.log(res); // =>6
 ```js
 let add = curring();
 let res = add(1)(2)(3);
-console.log(res); // -> 6
+// +''是为让res转为字符串
+console.log(res+''); // -> 6
 
 add = curring();
 res = add(1,2,3)(4);
-console.log(res); // -> 10
+console.log(res+''); // -> 10
 
 add = curring();
 res = add(1)(2)(3)(4)(5);
-console.log(res); // -> 15 
+console.log(res+''); // -> 15 
+
 ```
 
 开始编写：
@@ -1656,6 +1944,7 @@ const throttle = function throttle(func, wait) {
             self = this,
             result;
         if (remaining <= 0) {
+            // 连续点击时，是不会走进来这里【除了第一次点击】
             if (timer) {
                 clearTimeout(timer);
                 timer = null;
@@ -1785,6 +2074,8 @@ window.onscroll = throttle(handle2, 1000);
     }
 })();
 ```
+
+![Jquery](/medias/imges/js/jsUp/jquery.png)
 
 ### 对闭包的理解
 
@@ -2040,6 +2331,824 @@ console.log(m); // => 15 (10+10-5)
         return this - 5;
     }
 })();
+```
+
+#### 检测公有和私有属性
+
+检测私有属性我们可以有两种方法
+
+* 调用`Object`类原型上的`Object.prototype.hasOwnProperty(key)`，key所要检测属性名
+* 使用关键字`in`，但其检测当前对象是否有这个属性【私有和公有都行】，原理：先检测私有属性是否有，没有的话按照原型链一级一级的向上查找，直到`Object.prototype`为止，只要能找到结果就是`true`
+
+```js
+let obj = {
+    name:'zs',
+    age:12
+}
+// 'toString'方法是在Object.prototype上的方法
+console.log(obj.hasOwnProperty('name')) // true
+console.log(obj.hasOwnProperty('toString')) // false
+console.log('name' in obj) // true 
+console.log('toString' in obj) // true 
+```
+
+面试题：检测一个属性是否是对象的公有属性
+
+* 思路一：是它的一个属性，但是还不是私有属性，则一定是公有属性
+
+```js
+Object.prototype.hasPubProperty = function hasPubProperty(attr) {
+    let self = this;
+    return (attr in self) && !self.hasOwnPrototype(attr)
+}
+console.log(obj.hsaPubProperty('name')) // false
+console.log(obj.hsaPubproperty('toString')) // true
+```
+
+缺陷：这个思路是不完善的，比如公有属性和私有属性都有同一个属性名的函数时，结果就是不追却的
+
+```js
+let obj = {
+    toString(){}
+}
+// 这里的toString不管在obj的私有属性或者公有属性都存在，使用上面的方法hasPubProperty('toString')的值直接是false，因为在私有属性查找的时候已经被判断出了结果
+```
+
+* 思路二：跳过私有的查找，直接到对象原型链上去查找，一直找到`Object.prototype`为止，当某一个原型对象上有这个属性，结果就返回`true`
+  * 依靠`Object.getPrototypeOf(xxx)`可获取`xxx.__proto__`所指向的原型对象
+
+```js
+Object.prototype.hasPubProperty = function hasPubProperty(attr){
+    let self =this,
+        proto = Object.getPrototypeOf(self);
+    while(proto) {
+        if(proto.hasOwnPrototype(attr)) return true
+        proto = Object.getPrototypeOf(proto)
+    }
+    return false
+}
+
+// 也可以直接采用in的原理
+Object.prototype.hasPubProperty = function hasPubProperty() {
+    let self =this,
+        proto = Object.getPrototypeOf(self);
+    return attr in proto;
+} 
+console.log(obj.hasPubProperty('name')) // false
+console.log(obj.hasPubProperty('toString')) // true
+```
+
+#### 对比 for 循环和for in循环
+
+遍历对象：我们使用`for in`循环，但是`for in`循环有很多问题
+
+* 性能比较差，`for in`在迭代的时候，除了迭代所有的私有属性，其原型上的公有属性也会被迭代，当能被迭代出来的属性前提是：**可枚举的属性**(粗略的认为：内置属性一般都是不可枚举的，自定义的属性是可枚举的)，`for in`默认也会对不可枚举的属性进行迭代，只是不会给我们返回迭代结果，而这样在性能是大大折扣的，所以使用`for in`循环的时候，我们需要手动去除它对公有属性的迭代
+* 有限迭代所有数字属性（从小到大，其次才是迭代非数字，与自己编写的属性顺序不完全一致，不能迭代`Symbol`类型的私有属性）
+
+```js
+let obj = {
+  name:'zs',
+  age:10,
+  [Symbol('AA')]:10,
+  10:10,
+  0:0
+}
+// 手动去除对公有属性的遍历
+for(let key in obj ){
+  if(!obj.hasOwnProperty(key)) break
+  console.log(key)
+}
+```
+
+对比for 与for in
+
+```js
+let arr = new Array(999999).fill(0)
+console.time('AA')
+for(let i=0;i<arr.length;i++) {} // AA: 3.929931640625 ms
+console.timeEnd('AA')
+console.time('BB')
+for(let key in arr) {
+} // BB: 125.285888671875 ms
+console.timeEnd('BB') 
+// 对比之后可知,能不用for in 就不用,可以用 for / for of...来替代,即使用了for in 也要"if(!obj.hasOwnProperty(key)) break"加上这个判断手动去除迭代原型链上的属性
+```
+
+对于`for in`的缺点，我们可以结合`Object.keys(obj)`与`Object.getOwnPropertySymbols(obj)`来模拟修复
+
+* `Object.keys(obj)`：获取obj所有非`Symbol`且可枚举的属性，也可使用`Object.getOwnPropertyNames(obj)`其是获取到obj对象所有非`Symbol`的私有属性【比如说数组的私有属性内值length，`Object.keys`是获取不到的，`Object.getOwnPropertyNames`是可以获取到的】，推荐使用`Object.keys`
+* `Object.getOwnPropertySymbol(obj)`获取obj对象所有`Symbol`类型的私有属性
+
+> 解决了`for in`会对公有属性进行迭代和不可迭代Symbol属性的问题
+
+```js
+let keys = Object.keys(obj);
+if(!typeof Symbol !== 'undefined') keys=keys.concat(Object.getOwnPropertySymbols(obj))
+keys.forEach(key=>{
+  console.log('属性名',key,'属性值',obj[key])
+})
+```
+
+#### 迭代器（Iterator）与FOR OF机制
+
+> 迭代器（Iterator）是一种机制：为各种不同的数据结构提供了统一的访问机制，任何数据结构只要部署了`Iterator`接口，就可以完成遍历操作【for of机制】，依次处理该数据结构的所有成员，接口规范如下：
+>
+> * 拥有`next`方法用于依次遍历数据结构的成员
+> * 每一次遍历返回的结果是一个对象，`{done:false,value:xxx}`
+>   * done：记录是否遍历完成
+>   * value：当前遍历的结果
+
+需要注意：`js`中如果数据结构拥有这个接口规范，其原型`prototype`上就会有一个属性`Symbol.iterator`，那么基于这个属性，这个数据结构就可以被`for of`迭代了，具体哪些数据结构存在：
+
+1. 数组、部分类数组：`arguments/NodeList/HTMLCollection...`
+2. String
+3. Set/Map
+4. generator function 
+
+注意：普通对象是不具备该接口，所以普通对象无法基于`for of`迭代
+
+手写`Iterator`接口规范
+
+```js
+class Iterator {
+    constructor(assemble) {
+        this.assemble =assemble
+        this.index = 0
+    }
+    next() {
+        const assemble = this.assemble;
+        if(this.index > assemble.length-1) {
+            return {
+                done:true,
+                value:undefined
+            }
+        }
+        return {
+            done:false,
+            value:this.assemble[this.index++];
+        }
+    }
+}
+const itor = new Iterator([10,20,30,40]);
+console.log(itor.next()); //->{value:10,done:false}
+console.log(itor.next()); //->{value:20,done:false}
+console.log(itor.next()); //->{value:30,done:false}
+console.log(itor.next()); //->{value:40,done:false}
+console.log(itor.next()); //->{value:undefined,done:true}
+```
+
+**FOR OF机制**
+
+> FOR OF 遍历的时候，会先调用对象原型链上的`[Symbol.iterator]`，获取一个迭代器对象`itor`，每一轮迭代中，都是执行`itor.next()`，并且把返回对象中的`value`值拿到，所以`FOR OF`在迭代中获取的值就是`value`，一旦返回对象中的`done`为`true`时，则终止迭代
+
+用数组来演示FOR OF 机制
+
+```js
+Array.prototype[Symbol.Iterator] = function(){
+    let assemble = this,
+        index=0;
+    return {
+        next() {
+            if(index>assemble.length - 1) {
+                return {
+                    done:true,
+                    value:undefined
+                }
+            }
+            return {
+                done:false,
+                value:assemble[index++]
+            }
+        }
+    }
+}
+let arr = [10,20,30]
+for(let value of arr) {
+    console.log(value)
+}
+```
+
+基于刚才所说，要想`FOR OF`进行迭代，则需要的是该数据结构提供了`Iterator`规范，但原生普通对象原型上是没有该规定的，所以无法使用`FOR OF`迭代，至此有面试就会问如何用`FOR OF `来迭代对象，下面我们往普通对象原型上扩展该接口规范
+
+```js
+Object.prototype[Symbol.Iterator] = function values() {
+    let assemble = this,
+        keys = Object.keys(assemble).concat(Object.getOwnPropertySymbols(assemble)),
+        index=0;
+    return {
+        next() {
+            if(index>keys.length-1) {
+                return {
+                    done:true,
+                    value:undefined
+                }
+            }
+            const key = keys[index++]
+            return {
+                done:false,
+                value:assemble[key]
+            }
+        }
+    }
+}
+let obj = {
+    name: 'zhufeng',
+    age: 12,
+    0: 100,
+    1: 200
+};
+for (let value of obj) {
+    console.log(value); // zhufeng | 12 | 100 | 200
+} 
+```
+
+真实项目中，我们对象结构往往会是一个特殊的类数组结构，那么我们可以直接将数组原型上的`Iterator`接口规范嫁接到类数组结构上接口
+
+```js
+let obj = {
+    0: 10,
+    1: 20,
+    2: 30,
+    3: 40,
+    length: 4
+};
+obj[Symbol.iterator] = Array.prototype[Symbol.iterator];
+for (let value of obj) {
+    console.log(value);
+}
+```
+
+JQ的做法也是，因为用JQ获取的元素集合是一个类数组集合
+
+```js
+if (typeof Symbol === "function") {
+    jQuery.fn[Symbol.iterator] = arr[Symbol.iterator];
+}
+```
+
+#### 对于ES6和ES5创建构造函数
+
+```js
+// 构造函数体
+function Modal(x,y) {
+    this.x = x;
+    this.y = y;
+}
+
+// 原型对象上扩展的供其实例调取使用的公有属性付费, m.z/getX/getY
+Modal.prototype.z= 10;
+Modal.prototype.getX= function() {
+    console.log(this.x)
+}
+Modal.prototype.getY = function() {
+    console.log(this.y)
+}
+// 把函数当作一个对象,给其设置的静态私有属性方法[和实例没啥关系,Modal.n/setNumber....]
+Modal.n = 200
+Modal.setNumber = function(n) {
+    this.n = n
+}
+let m = new Modal(10,20)
+```
+
+```js
+class Modal {
+    // 构造函数体:this.xx 给实例设置私有属性
+    constructor(x,y) {
+        this.x= x;
+        this.y = y;
+    }
+    // 这样处理也是给实例设置的私有属性
+    z=10
+say = function(){}
+hello = ()=>{}
+// 向类的原型对象上扩充公有方法[无法扩充公有属性]
+// @1 语法上只能这么写,无法扩充公有属性
+// @2 所有扩充的方法是没有prototype的
+// @3 并且这些方法是实例对象不可枚举的属性[ES5中,基于类.prototype公有方法是可枚举的]
+getX() {
+    console.log(this.x)
+}
+getY(){
+    console.log(this.y)
+}
+// 把其当作对象,设置静态属性和方法
+static n = 200
+static sayName = () =>{}
+}
+// 给原型扩充属性
+Modal.prototype.z = 10
+let m = new Modal(10,20)
+// Modal(10,20) // Uncaught TypeError: Class constructor Modal cannot be invoked without 'new',不允许当作普通函数执行,只能new执行
+```
+
+#### 函数的多种角色
+
+* 函数（第一角色）
+  * 普通函数：拥有私有上下文，AO，作用域，作用域链，形参赋值，变量提升，闭包....
+  * 构造函数【类】：拥有普通函数执行的特点，另外还有类、实例、prototype、`__proto__`...
+* 对象【静态属性和方法】
+
+我们来搞搞函数与对象之间的爱恨情仇
+
+```js
+function Modal(x, y) {
+    this.x = x;
+    this.y = y;
+}
+Modal.prototype.getX = function () {
+    console.log(this.x);
+};
+Modal.prototype.getY = function () {
+    console.log(this.y);
+};
+Modal.n = 200;
+Modal.setNumber = function (n) {
+    this.n = n;
+};
+let m = new Modal(10, 20);
+```
+
+![函数多种角色](/medias/imges/js/jsUp/Func-Obj.png)
+
+通过分析提取出来的知识点：
+
+* `instanceof`：检测当前实例对象是否属于这个类，其是沿着该实例对象的原型链去查找，如果该类出现在该实例原型链中，则返回`true`
+* `Function.prototype`是一个匿名`anonymouse`空函数`empty`，操作起来和其他原型对学校没有区别，而其他类的原型对象就是对象数据类型，所以出现以下情况不要意外
+
+```js
+Function.prototype();// 可行，其他类
+Object.prototype(); // 报错
+```
+
+> 究竟`Function`和`Object`谁大呢，其实我认为他们是同等级的，我们要站在不同的角度来分析，当我们只针对对象类型来分析的话`Object`等级大于`Function`，而正对函数来分析的话`Function`大于`Object `
+
+面试题：
+
+```js
+function Foo() {
+  getName = function () {
+      console.log(1);
+  };
+  return this;
+}
+Foo.getName = function () {
+  console.log(2);
+};
+Foo.prototype.getName = function () {
+  console.log(3);
+};
+var getName = function () {
+  console.log(4);
+};
+function getName() {
+  console.log(5);
+}
+Foo.getName();
+getName();
+Foo().getName();
+getName();
+new Foo.getName();
+new Foo().getName();
+new new Foo().getName();
+```
+
+![函数多种角色面试题](/medias/imges/js/jsUp/interview-11.png)
+
+#### 手撕new源码
+
+我们先来看`new`做了哪些事
+
+* 把构造函数当做普通函数一样执行
+* 创建当前类的一个空实例对象
+  * 对象是空对象
+  * 并且这个对象的隐式原型（`__proto__`）指向的是这个构造函数显式原型`prototype`
+* 让方法执行的时候，方法中的`this`指向这个实例对象，``this.xxx`就是在给实例对象设置私有属性和方法
+* 看方法的返回结果，如果没有返回值/或者返回值的是原始值，我们默认都返回实例对象，如果返回的是对象类型，则以用户自己手动返回的为主
+
+注意：
+
+* 传入的构造函数不能是`Symbol/BigInt`，也不能是没有`prototype`的箭头函数和ES6新语法赋值的函数
+* `Object.create(proto)`是来解决`__proto__`在IE下不兼容的问题，该方法是创建一个空对象，并且把传入的proto作为新创建对象的原型，也就是`新对象.__proto__==proto`；并且`proto`只能是`null`和对象类型值，如果是`null`则创建的新对象不具备`__proto__`，它不是任何类的实例
+
+```js
+function Dog(name) {
+    this.name = name;
+}
+Dog.prototype.bark = function () {
+    console.log('wangwang');
+};
+Dog.prototype.sayName = function () {
+    console.log('my name is ' + this.name);
+};
+
+function _new(Ctor, ...params) {
+    let obj,
+        result,
+        proto = Ctor.prototype;
+    if (Ctor === Symbol || Ctor === BigInt || !proto || typeof Ctor !== "function") throw new TypeError(`${Ctor} is not a constructor`);
+    // Object.create(proto):创建一个空对象,并且把proto作为新创建对象的原型「新对象.__proto__===proto」；proto只能是null和对象类型值，如果是null则创建的新对象不具备__proto__，它不是任何类的实例；
+    obj = Object.create(Ctor.prototype);
+    result = Ctor.call(obj, ...params);
+    if (result && /^(object|function)$/i.test(typeof result)) return result;
+    return obj;
+}
+let sanmao = _new(Dog, '三毛');
+sanmao.bark(); //=>"wangwang"
+sanmao.sayName(); //=>"my name is 三毛"
+console.log(sanmao instanceof Dog); //=>true
+```
+
+#### 鸭子类型
+
+> 所谓的鸭子类型就是两个实例对象的结构是非常相似的，以至于能相互借用方法调用。比如类数组和数组，大部分的数组方法都能被类数组进行调用。借用的方式有一般两种
+>
+> * 把需要借用的方法当做值赋值给对象的私有属性
+> * 直接改变借用方法中的this，使用`call/bind/apply`
+
+```js
+
+Array.prototype.push = function push(item){
+  // this -> arr 向末尾新增一项
+  this[this.length]=item;
+  // 对于数组来说,新增一项后,它的length也会主动的累加"数组结构特点"
+  this.length++;
+  return this.length;
+}
+let obj = {
+  2: 3, //1
+  3: 4, //2
+  length: 2, //4
+  // 把需要借用的方法当做值赋值给对象的私有属性push，后期基于obj.push()其实就是调用Array.prototype.push方法执行「真实项目中，我们也会基于这种简单粗暴的模式，实现“某个实例借用其它类原型上的某些方法”」
+  push: Array.prototype.push
+};
+obj.push(1)
+// this:obj item:1 -> obj[2]=1 obj.length++
+obj.push(2)
+// this:obj item:2 -> obj[3]=2 obj.length++
+console.log(obj)
+```
+
+```js
+// 模拟一下数组的浅克隆
+// Array.prototype.slice = function slice() {
+//     let result = [];
+//     for(let i=0;i<this.length;i++) {
+//       result.push(this[i])
+//     }
+//     return result
+// } 
+let utils = (function(){
+  function toArray(){
+    return [].slice.call(arguments)
+  } 
+  return {
+      toArray
+  };
+})();
+let ary = utils.toArray(10,20,30); //=>[10,20,30]
+console.log(ary)
+ary = utils.toArray('A',10,20,30); //=>['A',10,20,30]
+console.log(ary)
+```
+
+#### 原型重定向问题
+
+我们再给自定义类增加原型的时候，在ES5是要用`xxx.prototype.xxx=xxx`这样写过于繁琐，但这在ES6的`class`语法中就解决了。当然我们想不使用`class`语法来做到批量给某个原型增加方法，可以使用原型重定向
+
+可以采用`Object.assign(A,B)`来进行指向，我们先来了解`Object.assign()`的语法
+
+```js
+// 用B中的内容替换A [B有的，A没有，把B的东西放到A里；B没有的A有，则不做处理，以A为主；B和A都有的，以B为主]，返回的结果是A这个内存地址[对象]
+Object.assign(A,B); 
+// 最后返回的是一个新的堆内存，和A/B都没关系，其是先拿A和{}合并，再拿B和{}合并
+// 并且Object.assign合并的时候对于不可枚举的属性是处理不了的
+Object.assign({},A,B)
+```
+
+例如:`constructor`是不可枚举属性，所以我们原型重定向之后要手动设置一个即可
+
+```js
+function Fn() {
+    this.x = 100;
+    this.y = 200;
+}
+Fn.prototype.sum = function sum() {};
+Fn.prototype = Object.assign({}, Fn.prototype, {
+    constructor: Fn,
+    getX() {},
+    getY() {}
+});
+
+```
+
+面试题：
+
+```js
+function Fn() {
+    let a = 1;
+    this.a = a;
+}
+Fn.prototype.say = function () {
+    this.a = 2;
+}
+Fn.prototype = new Fn;
+let f1 = new Fn;
+Fn.prototype.b = function () {
+    this.a = 3;
+};
+console.log(f1.a);
+console.log(f1.prototype);
+console.log(f1.b);
+console.log(f1.hasOwnProperty('b'));
+console.log('b' in f1);
+console.log(f1.constructor == Fn);
+```
+
+![stack-heap](/medias/imges/js/jsUp/prototype-renew.png)
+
+#### 继承
+
+> 面向对象中：类有三大特点  封装、多态、继承
+>
+> * 封装：把实现某个功能的代码进行封装处理，后期想实现中国功能，直接调用函数执行即可，体现低耦合、高内聚的特点
+> * 多态：重载【方法名相同，参数类型或者个数不同，这样会认为是多个方法，但在js中是不存在函数重载概念，java则可以】或者子类重写父类的方法也算
+> * 继承：子类继承父类的方法，子类的实例即拥有子类赋予的私有/公有属性方法，也具备父类赋予的私有/公有属性方法
+
+继承可分为：原型继承、call继承、寄生组合继承
+
+* 原型继承
+
+> 特点：和传统后台语言中的继承不一样【后台：子类继承父类，会把父类的方法COPY一份给子类】，而`js`没有把父类的方法`copy`一份给子类，而是建立子类和父类之间的原型链指向，后期子类实例访问父类中提供的属性和方法，也是基于`__proto__`原理链一层层查找的。
+
+```js
+function Parent() {
+    this.x=100;
+}
+Parent.prototype.getX=function() {}
+
+function Child() {
+    this.y=200;
+}
+Child.prototype = new Parent;
+Child.prototype.getY=function() {}
+
+let ch = new Child;
+console.dir(ch);
+```
+
+出现的问题：
+
+1. 父类想要赋予其实例私有属性的`x`，此时变为了子类实例`ch`的公有属性
+
+2. 子类实例可以基于原型链修改父类原型上的方法，这样会对父类的其他实例也产生影响
+
+* call继承
+
+> call继承：把父类当做普通方法执行，让方法中的`THIS`是子类的实例，这样可以达到让父类中赋予其实例私有的属性，最后也变成子类实例私有的属性
+
+```js
+function Parent() {
+    this.x=100;
+}
+Parent.prototype.getX=function(){}
+
+function Child() {
+    Parent.call(this);
+    this.y=200;
+}
+Child.prototype.getY = function() {}
+
+let ch = new Child;
+console.dir(ch);
+```
+
+出现的问题：
+
+1. `call`继承之后，虽然解决了将父类的私有属性也加到子类的私有属性中，但存在的问题是子类原型链指向并没有发生改变，导致子类不同通过原型链找到父类的原型上的方法，也就没法继承到父类的公有属性和方法
+
+* 寄生组合式继承【推荐使用】
+
+> 寄生组合式继承：就是把`call`继承和**变形的原型链继承**（`child.prototype=Object.create(Parent.prototype)`）混合在一起，就实现了寄生组合式继承
+
+```js
+function Parent(){
+    this.x=100;
+}
+Parent.prototype.getX = function(){}
+
+function Child() {
+    Parent.call(this);
+    this.y = 200;
+}
+// Object.create()还是会丢失constructor属性
+Child.prototype = Object.create(Parent.prototype);
+Child.prototype.constructor=Child
+Child.prototype.getY = function() {}
+
+let ch = new Child;
+console.dir(ch);
+```
+
+* ES6中类的继承`extend`(非常类似寄生组合继承)
+
+```js
+class Parent {
+    constructor() {
+        this.x = 100;
+    }
+    getX() {}
+}
+
+class Child extends Parent {
+    /* constructor() {
+        // 一但使用extends，并且编写了constructor，必须在constructor函数第一行写上 super()
+        //   从原理上类似call继承  super() ==> Parent.call(this)
+        super();
+        this.y = 200;
+    } */
+    y = 200;
+    getY() {}
+}
+
+let ch = new Child;
+console.dir(ch);
+```
+
+![组合继承](/medias/imges/js/jsUp/inherit.png)
+
+#### 工厂设计模式
+
+> 把一个构造函数执行，最后还可以获取到当前构造函数的实例
+
+```js
+function Fn() {
+    return new Init()
+}
+Fn.prototype = {
+    constructor:Fn
+}
+const init = function init() {
+    this.xxx = 'xxx'
+}
+init.prototype = Fn.prototype;
+Fn()
+```
+
+> 生成器本身具备这个特点：当作普通函数执行，返回一个迭代器对象`itor`，并且`itor.__proto__===fn.prototype`
+
+```js
+function* fn() {}
+fn.prototype = {
+    constructor: fn,
+    name: 'fn'
+};
+let itor = fn();
+console.log(itor); 
+```
+
+#### 编写queryURLParams方法
+
+```js
+String.prototype.queryURLParams = function queryURLParams(attr) {
+    // this -> url
+    let self = this,
+        link = document.createElement('a'),
+        obj = {};
+    link.href = self;
+    let {
+        search,
+        hash
+    } = link;
+    if (hash) obj['_HASH'] = hash.substring(1);
+    if (search) {
+        search = search.substring(1).split('&');
+        search.forEach(item => {
+            let [key, value] = item.split('=');
+            obj[key] = value;
+        });
+    }
+    return typeof attr !== "undefined" ? obj[attr] : obj;
+};
+
+String.prototype.queryURLParams = function queryURLParams(attr) {
+    // this -> url
+    let self = this,
+        obj = {};
+    self.replace(/#([^?=&#]+)/g, (_, $1) => obj['_HASH'] = $1);
+    self.replace(/([^?=&#]+)=([^?=&#]+)/g, (_, $1, $2) => obj[$1] = $2);
+    return typeof attr !== "undefined" ? obj[attr] : obj;
+};
+
+let url = "http://www.zhufengpeixun.cn/?lx=1&from=wx#video";
+console.log(url.queryURLParams("from")); //=>"wx"
+console.log(url.queryURLParams("_HASH")); //=>"video"
+console.log(url.queryURLParams());  
+```
+
+### ajax & axios & fetch
+
+ajax、axios、$.ajax、fetch
+
+共同点：都是基于`TCP(HTTP/HTTPS)`从服务器获取数据
+
+区别：
+
+* ajax、axios、$.ajax 它们的核心：`XMLHttpRequest`
+  * ajax 是原生操作
+  * axios是基于`promise`封装的ajax库【推荐使用】
+  * `$.ajax`是基于回调函数的方式封装的`ajax`库
+* `fetch`：是ES6新增的API，和`XMLHttpRequest`没有关系，这是浏览器新提供的一种和服务器通信的机制，而且默认就是基于`promise`管理的，但是兼容性较差，除了`EDGE`新版本，其余的`IE`浏览器都不支持
+
+### Promise的恶心题
+
+```js
+Promise.resolve().then(() => {
+    console.log(0);
+    // return 4;
+    return Promise.resolve(4); //如果返回的是一个Promise实例，需要等待Promise是成功的，才能让“异步微任务2”执行；但是如果返回的Promise实例立即是成功的，也不会让“异步微任务2”变为立即可执行的，而是需要“递归”再去验证一次...  「推测：内置Promise中多等了两步」这里相当于 x.then(4).then(4)
+}).then((res) => { //异步微任务2
+    console.log(res);
+});
+
+Promise.resolve().then(() => {
+    console.log(1);
+}).then(() => {
+    console.log(2);
+}).then(() => {
+    console.log(3);
+}).then(() => {
+    console.log(5);
+}).then(() => {
+    console.log(6);
+});
+```
+
+![解析](/medias/imges/js/jsUp/then内有Promise的解析.png)
+
+如果`await`后面跟着是`promise`，则会有两种情况，老版浏览器或node环境，会解析成`x.then(xx).then(xx).then(7)`两次then，而新版的则只会解析成一个then，`x.then(7)`
+
+```js
+setTimeout(function() {
+    console.log(1) 
+}, 0);
+
+new Promise(function(resolve, reject) {
+    console.log(2); 
+    resolve();
+}).then(function() {
+    console.log(3) 
+}).then(function() {
+    console.log(4)  
+}).then(function() {
+    console.log('ssss')
+}).then(function() {
+    console.log('aaa')
+});
+async function test() {
+    console.log(6) 
+    await Promise.resolve(xx) // x.then(xx).then(xx).then(7) -> x.then(7)
+    console.log(7) 
+}
+console.log(5); 
+test()
+
+// 新版的顺序 2 5 6 3 7 4 sss aaa  1 
+// 老版的顺序 2 5 6 3 4 ssss 7 aaa 1
+```
+
+如果await后面的是一个async函数，并且函数内部返回值也是个promise，则：解析成x.then().then().then(xx)，新版老版的解析规则都一样，如果不是async函数，则老版解析成`x.then().then().then(xxx)`，新版解析成`x.then(xxx)`
+
+```js
+async function async1() {
+    console.log('async1 start');
+    await async2(); // x.then().then().then(async1 end) |  x.then(async1 end)
+    console.log('async1 end');
+}
+
+async function async2() {
+    console.log('async2 start');
+    return new Promise((resolve, reject) => {
+        resolve();
+        console.log('async2 promise');
+    })
+}
+console.log('script start');
+setTimeout(function() {
+    console.log('setTimeout');
+}, 0);
+async1();
+new Promise(function(resolve) {
+    console.log('promise1');
+    resolve();
+}).then(function() {
+    console.log('promise2');
+}).then(function() {
+    console.log('promise3');
+});
+console.log('script end');
+// 老版/新版加了async函数：script start  | 'async1 start' | async2 start |  async2 promise |  promise1 | script end  | promise2 | promise3 | async1 end | setTimeout
+// 新版去掉async或者不返回promise：script start  | 'async1 start' |  async2 start | async2 promise | promise1 | script end| async1 end  | promise2 |promise3 | setTimeout
 ```
 
 
