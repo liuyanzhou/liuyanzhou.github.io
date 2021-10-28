@@ -24,7 +24,7 @@ node中自己实现的发布订阅模块。订阅是将方法对应成一种`1:n
 
 ```js
 function EventEmitter() {
-    this._events = [] // 实例属性
+    this._events = {} // 实例属性
 }
 
 EventEmitter.prototype.on = function(eventName, callback) {

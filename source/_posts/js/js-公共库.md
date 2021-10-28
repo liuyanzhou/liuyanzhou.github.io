@@ -266,3 +266,49 @@ const merge = function merge() {
 }
 ```
 
+#### 深浅克隆
+
+```js
+// 实现数组/对象的深浅克隆
+const clone = function clone() {
+    let target = arguments[0],
+        deep = false,
+        type,
+        isArray,
+        isObject,
+        result,
+        Ctor,
+        treated = arguments[arguments.length - 1];
+    !Array.isArray(treated) || !treated.treated ? (treated = [], treated.treated = true) : null;
+    if (typeof target === "boolean") {
+        deep = target;
+        target = arguments[1];
+    }
+    if (treated.indexOf(target) > -1) return target;
+    treated.push(target);
+    type = toType(target);
+    isArray = Array.isArray(target);
+    isObject = isPlainObject(target);
+    if (target == null) return target;
+    Ctor = target.constructor;
+    if (/^(regexp|date)$/i.test(type)) return new Ctor(target);
+    if (/^(error)$/i.test(type)) return new Ctor(target.message);
+    if (/^(function|generatorfunction)$/i.test(type)) {
+        return function proxy() {
+            var args = Array.from(arguments);
+            return target.apply(this, args);
+        };
+    }
+    if (!isArray && !isObject) return target;
+    result = new Ctor();
+    each(target, function (copy, name) {
+        if (deep) {
+            result[name] = clone(deep, copy, treated);
+            return;
+        }
+        result[name] = copy;
+    });
+    return result;
+};
+```
+

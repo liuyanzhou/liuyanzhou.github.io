@@ -45,7 +45,7 @@ tags:
 * 把其他类型【原始值类型】转换为对象，直接使用`Object([value])`
 * 把其他类型转换为布尔
 
-> 规则：只有  0、NaN、null、undefined、空字符串 会变为`false`，其余都是转为`true`，可以通过以下手段进行转换
+> 规则：只有  +0，-0、NaN、null、undefined、空字符串 会变为`false`，其余都是转为`true`，可以通过以下手段进行转换
 >
 > * Boolean([value])
 > * `!![value]`
@@ -127,15 +127,15 @@ console.log(+object1); // 42
 
 > 把其他类型转换为数字，有以下2套规则
 >
-> * Number([value])：一般用于隐式转换【数学运算，isNaN, == 比较,...】
+> * Number([value])：一般用于隐式转换【数学运算，isNaN, == 比较,...】 =====> 转换
 >   * 字符串 -> 数字 ：空字符串为`0`，而只要字符串出现**非有效数字字符**结果就是`NaN`
 >   * 布尔 -> 数字：`true为1`,`false为0`
 >   * null ： 0
 >   * undefined ： NaN
 >   * Symbol ：会报错
->   * 对象：遵循 `Symbol.toPrimitive -> valueOf -> toString -> Number隐式转换`
+>   * 对象：遵循 `Symbol.toPrimitive -> valueOf -> toString -> Number隐式转换` 
 >
-> * parseInt / parseFloat([value])：首先会把【value】先转换为字符串，从字符串左侧第一个字符开始查找，直到找到一个非有效数字字符为止，会将找到的结果转为数字，如果一个有效数字都没有，结果就是`NaN`,而`parseFloat()比parseInt()`多识别一个小数点
+> * parseInt / parseFloat([value])：首先会把【value】先转换为字符串，从字符串左侧第一个字符开始查找，直到找到一个非有效数字字符为止，会将找到的结果转为数字，如果一个有效数字都没有，结果就是`NaN`,而`parseFloat()比parseInt()`多识别一个小数点 =======> 解析
 >
 >   * parseInt([value]) -> 完整语法`parseInt([string],[radix])`，`[radix]`有效值在`2~36`之间，如果不传递默认是`10`进制，但是如果字符串是`0x`开头默认是`16进制`；如果写`0`，其和不写是一样的规则（10进制或16进制）
 >   * 在`parseInt([string],[radix])`其会把`[string]`看做`radix`进制，从左侧找到所有符合该进制的字符，遇到不符合的字符结束查找，在将找到的字符转为数字（10进制）
@@ -182,7 +182,17 @@ arr = arr.map(parseInt);
 console.log(arr); // 27 NaN 1 1 27上
 ```
 
+#### 奇特的~符号
+
+`~`很奇特，相当于显示的类型转换为布尔值，因为`~x`相当于`-(x+1)`，这个值想要为0，则只有`x=-1`时才能获得此结果。故此也只有`x=-1`时，这个条件才为假，其他条件都为真。又由此`-1`在我们变成中是比较特殊的，很相当于一个哨兵岗，例如`String.prototype.indexOf()`这个api，找不到目标字符，则返回`-1`，所以我们的判断真的条件可写为
+
+```js
+if(~str.indexOf('hello world')) {找不到hello world执行该函数体}
+```
+
 #### == 和 === 的区别
+
+`==`：允许在相等比较中进行强制类型比较，`===`：不允许
 
 JS中验证两个值是否相等，有以下方法
 
@@ -191,6 +201,7 @@ JS中验证两个值是否相等，有以下方法
   * null == undefined：结果为`true`，但在其在`null === undefined`是不相等，并且`null/undefined`与其他值比较都是`false`
   * `NaN == NaN`：结果是`false`并且`NaN===NaN`也是`false`，但在`Object.is(NaN,NaN)`是相等的
   * `Symbol() == Symbol()`结果是`false`，`Symbol() === Symbol()`也是`false`
+  * +0 == -0
   * 剩余的情况，[例如：对象==数字、字符串==布尔...]都是要两者进行转化为数字，在进行比较
 * `===`：绝对相等，要求两边的类型和值都要相等，`switch case`的进制也是这样子，但`NaN===NaN`,`Symbol() === Symbol()`的结果都为`false`
 * `Object.is([val],[val])`，其`Object.is(NaN,NaN)`的结果为`true`
@@ -3060,6 +3071,8 @@ ajax、axios、$.ajax、fetch
   * `$.ajax`是基于回调函数的方式封装的`ajax`库
 * `fetch`：是ES6新增的API，和`XMLHttpRequest`没有关系，这是浏览器新提供的一种和服务器通信的机制，而且默认就是基于`promise`管理的，但是兼容性较差，除了`EDGE`新版本，其余的`IE`浏览器都不支持
 
+
+
 ### Promise的恶心题
 
 ```js
@@ -3150,8 +3163,6 @@ console.log('script end');
 // 老版/新版加了async函数：script start  | 'async1 start' | async2 start |  async2 promise |  promise1 | script end  | promise2 | promise3 | async1 end | setTimeout
 // 新版去掉async或者不返回promise：script start  | 'async1 start' |  async2 start | async2 promise | promise1 | script end| async1 end  | promise2 |promise3 | setTimeout
 ```
-
-
 
 ### 对元素事件的重新理解
 
